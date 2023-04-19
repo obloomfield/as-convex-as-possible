@@ -5,25 +5,20 @@
 #include <vector>
 #include <tuple>
 
-struct Plane
-{
+#include "MCTS.h"
 
+using namespace Eigen;
+using namespace std;
+
+Plane MCTS::cuttingPlane(const Mesh& mesh) {
+    return mcts(mesh, ITERATIONS, DEPTH);
 }
 
-struct Node
-{
-    Vector3f position;
-    int index;
-    Node *next;
-
-}
-
-Plane
-MCTS(int iterations, int depth)
+Plane MCTS::mcts(const Mesh& mesh, int iterations, int depth)
 {
     int i = 0;
-    Node root = m_vertices[0] // root is first by convention
-        while (i < iterations)
+    Node root = m_vertices[0] // TODO: use Mesh object instead of m_vertices
+    while (i < iterations)
     {
         vector<Plane> select_planes, Node v_i = TreePolicy(root, depth);
         vector<Plane> default_planes = DefaultPolicy(root, depth);
@@ -36,7 +31,7 @@ MCTS(int iterations, int depth)
     return node_to_plane[v_star.index];
 }
 
-std::tuple<vector<Plane>, int> TreePolicy(Node v, int depth)
+tuple<vector<Plane>, int> MCTS::TreePolicy(Node v, int depth)
 {
     vector<Plane> select_planes;
     while (depth(v) < depth)
@@ -59,7 +54,7 @@ std::tuple<vector<Plane>, int> TreePolicy(Node v, int depth)
     return select_planes, v;
 }
 
-std::tuple<vector<Plane>, int> DefaultPolicy(Node v, int depth)
+tuple<vector<Plane>, int> MCTS::DefaultPolicy(Node v, int depth)
 {
     vector<Plane> select_planes;
     while (depth(v) < depth)

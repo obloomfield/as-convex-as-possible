@@ -61,7 +61,9 @@ add_executable(${PROJECT_NAME}
 
    src/convex-hull/cost.cpp
    src/convex-hull/cost.h
-   src/convext-hull/MCTS.cpp
+
+   src/convex-hull/MCTS.cpp
+   src/convex-hull/MCTS.h
 
 )
 

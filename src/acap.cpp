@@ -1,4 +1,5 @@
 #include "acap.h"
+#include "convex-hull/MCTS.h"
 #include "graphics/meshloader.h"
 
 #include <iostream>
@@ -49,7 +50,7 @@ void ACAP::init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax)
         m_shape.init(vertices, triangles);
     }
 
-    Mesh m_mesh(m_shape); // our custom datatyp
+    Mesh mesh(m_shape); // our custom datatype
 
     vector<Mesh> decomp = ACD(mesh);
 
@@ -68,17 +69,37 @@ void ACAP::init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax)
 // NEED REPRESENTATIONS FOR:
 // - Mesh
 // - Plane
-
-
 vector<Mesh> ACAP::ACD(Mesh mesh) {
     vector<Mesh> Q = {mesh};
-    vector<Mesh> D;
+    vector<Mesh> D, mesh_parts;
 
     while (Q.size() > 0) {
+        vector<Mesh> new_Q;
         for (const Mesh& cur_mesh : Q) {
             Mesh convex = cur_mesh.VCH();
+            float cost = Cost::total_cost(cur_mesh,convex);
+
+            if (cost > COST_THRESHOLD) {
+                // TODO: MONTE CARLO TREE SEARCH, CUTTING PLANE. Modify new_Q
+
+                Plane p = MCTS::cuttingPlane(cur_mesh);
+
+            } else { // put back!
+                D.push_back(convex);
+                mesh_parts.push_back(cur_mesh);
+            }
         }
+        Q.clear();
+        Q = new_Q;
+        new_Q.clear();
     }
+
+    // TODO: implement merge
+    return merge(mesh, Q);
+}
+
+vector<Mesh> merge(Mesh& mesh, vector<Mesh>& convex_meshes) {
+    // TODO: implement merging meshes.
 }
 
 
