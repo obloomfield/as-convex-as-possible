@@ -2,6 +2,8 @@
 
 #include "graphics/shape.h"
 
+#include "geom/mesh.h"
+
 #include "Eigen/StdList"
 #include "Eigen/StdVector"
 #include <Eigen/SparseCholesky>
@@ -13,19 +15,18 @@ class Shader;
 
 class ACAP
 {
-private:
-    Shape m_shape;
 
-    // ================== Students, If You Choose To Modify The Code Below, It's On You
-
-    int getClosestVertex(Eigen::Vector3f start, Eigen::Vector3f ray, float threshold)
-    {
-        return m_shape.getClosestVertex(start, ray, threshold);
-    }
+public:
+    void init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax);
 
     void draw(Shader *shader, GLenum mode)
     {
         m_shape.draw(shader, mode);
+    }
+
+    int getClosestVertex(Eigen::Vector3f start, Eigen::Vector3f ray, float threshold)
+    {
+        return m_shape.getClosestVertex(start, ray, threshold);
     }
 
     SelectMode select(Shader *shader, int vertex)
@@ -42,5 +43,20 @@ private:
     {
         return m_shape.getAnchorPos(lastSelected, pos, ray, start);
     }
+
+private:
+    Shape m_shape;
+
+
+
+
+    // ================== Students, If You Choose To Modify The Code Below, It's On You
+
+
+
+
+
+
+
 
 };

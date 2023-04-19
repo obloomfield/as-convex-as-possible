@@ -13,6 +13,8 @@
 #include <QTimer>
 #include <memory>
 
+#include "Eigen/Dense"
+
 class GLWidget : public QOpenGLWidget
 {
     Q_OBJECT
@@ -44,7 +46,7 @@ private slots:
     void tick();
 
 private:
-    ARAP    m_arap;
+    ACAP    m_acap;
     Camera  m_camera;
     Shader *m_defaultShader;
     Shader *m_pointShader;

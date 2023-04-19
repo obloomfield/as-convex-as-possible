@@ -52,6 +52,16 @@ add_executable(${PROJECT_NAME}
    util/unsupportedeigenthing/OpenGLSupport
 
    src/acap.h
+
+   src/convex-hull/convex-hull.h
+   src/convex-hull/convex-hull.cpp
+
+   src/geom/mesh.h
+   src/geom/mesh.cpp
+
+   src/convex-hull/cost.cpp
+   src/convex-hull/cost.h
+
 )
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`

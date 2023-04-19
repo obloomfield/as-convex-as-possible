@@ -39,8 +39,6 @@ using namespace Eigen;
  *
  */
 
-ACAP::ACAP() {}
-
 void ACAP::init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax)
 {
     vector<Vector3f> vertices;
@@ -51,6 +49,10 @@ void ACAP::init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax)
         m_shape.init(vertices, triangles);
     }
 
+    Mesh m_mesh(m_shape); // our custom datatyp
+
+    vector<Mesh> decomp = ACD(mesh);
+
     // Students, please don't touch this code: get min and max for viewport stuff
     MatrixX3f all_vertices = MatrixX3f(vertices.size(), 3);
     int i = 0;
@@ -60,6 +62,23 @@ void ACAP::init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax)
     coeffMin = all_vertices.colwise().minCoeff();
     coeffMax = all_vertices.colwise().maxCoeff();
 
+}
+
+
+// NEED REPRESENTATIONS FOR:
+// - Mesh
+// - Plane
+
+
+vector<Mesh> ACAP::ACD(Mesh mesh) {
+    vector<Mesh> Q = {mesh};
+    vector<Mesh> D;
+
+    while (Q.size() > 0) {
+        for (const Mesh& cur_mesh : Q) {
+            Mesh convex = cur_mesh.VCH();
+        }
+    }
 }
 
 
