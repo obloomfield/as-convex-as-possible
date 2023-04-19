@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 # Sets project name
-project(simulation LANGUAGES CXX C)
+project(as-convex-as-possible LANGUAGES CXX C)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -29,27 +29,29 @@ include_directories(libs)
 # Specifies .cpp and .h files to be passed to the compiler
 add_executable(${PROJECT_NAME}
 
-  # src/main.cpp
-  # src/mainwindow.cpp
-  # src/simulation.cpp
-  # src/glwidget.cpp
-  # src/graphics/camera.cpp
-  # src/graphics/graphicsdebug.cpp
-  # src/graphics/meshloader.cpp
-  # src/graphics/shader.cpp
-  # src/graphics/shape.cpp
+   src/main.cpp
+   src/mainwindow.cpp
+   src/glwidget.cpp
+   src/graphics/camera.cpp
+   src/graphics/graphicsdebug.cpp
+   src/graphics/meshloader.cpp
+   src/graphics/shader.cpp
+   src/graphics/shape.cpp
 
-  # src/mainwindow.h
-  # src/simulation.h
-  # src/glwidget.h
-  # src/graphics/camera.h
-  # src/graphics/graphicsdebug.h
-  # src/graphics/meshloader.h
-  # src/graphics/shader.h
-  # src/graphics/shape.h
-  util/tiny_obj_loader.h
+   src/acap.cpp
 
-  # util/unsupportedeigenthing/OpenGLSupport
+
+   src/mainwindow.h
+   src/glwidget.h
+   src/graphics/camera.h
+   src/graphics/graphicsdebug.h
+   src/graphics/meshloader.h
+   src/graphics/shader.h
+   src/graphics/shape.h
+   util/tiny_obj_loader.h
+   util/unsupportedeigenthing/OpenGLSupport
+
+   src/acap.h
 )
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`
@@ -83,27 +85,13 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # Specifies other files
 qt6_add_resources(${PROJECT_NAME} "Resources"
   PREFIX
-  "/"
+    "/"
   FILES
-
-  # resources/shaders/shader.frag
-  # resources/shaders/shader.vert
-  # resources/shaders/skybox.frag
-  # resources/shaders/skybox.vert
-
-  # resources/skybox/top.jpg
-  # resources/skybox/left.jpg
-  # resources/skybox/back.jpg
-  # resources/skybox/front.jpg
-  # resources/skybox/bottom.jpg
-  # resources/skybox/right.jpg
-
-  # example-meshes/single-tet.mesh
-  # example-meshes/sphere.mesh
-  # example-meshes/cube.mesh
-  # example-meshes/cone.mesh
-  # example-meshes/ellipsoid.mesh
-  # example-meshes/bunny.mesh
+      resources/shaders/shader.frag
+      resources/shaders/shader.vert
+      resources/shaders/anchorPoint.vert
+      resources/shaders/anchorPoint.geom
+      resources/shaders/anchorPoint.frag
 )
 
 # GLEW: this provides support for Windows (including 64-bit)
