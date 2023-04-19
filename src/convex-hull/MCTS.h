@@ -24,6 +24,8 @@ public:
 
     static Plane cuttingPlane(const Mesh& mesh);
 
+    static void clip();
+
 private:
     static Plane mcts(const Mesh& mesh, int iterations, int depth);
     static std::tuple<std::vector<Plane>, int> TreePolicy(Node v, int depth);
