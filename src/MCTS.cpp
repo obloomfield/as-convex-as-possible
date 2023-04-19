@@ -3,6 +3,7 @@
 #include <cmath>   // For math library functions
 #include <cstring> // For string library functions
 #include <vector>
+#include <tuple>
 
 struct Plane
 {
@@ -35,11 +36,48 @@ MCTS(int iterations, int depth)
     return node_to_plane[v_star.index];
 }
 
-vector<Plane> TreePolicy(Node v, int depth)
+std::tuple<vector<Plane>, int> TreePolicy(Node v, int depth)
 {
     vector<Plane> select_planes;
     while (depth(v) < depth)
     {
-        float c *concavity = ConcavMetrix()
+        float c_prime = argmax(ConcavMetric(v));
+        bool all_expanded;
+        if (all_expanded)
+        {
+            select_planes.push_back(v.getPlane());
+        }
+        else
+        {
+            Plane p = c_prime.getRandomPlane();
+            c_prime_left, c_prime_right = cutPlane(c_prime);
+            Node v_prime = makeNewChild(c_prime_left, c_prime_right, p);
+            select_planes.push_back(p);
+            return select_planes, v_prime;
+        }
     }
+    return select_planes, v;
+}
+
+std::tuple<vector<Plane>, int> DefaultPolicy(Node v, int depth)
+{
+    vector<Plane> select_planes;
+    while (depth(v) < depth)
+    {
+        float c_prime = argmax(ConcavMetric(v));
+        bool all_expanded;
+        if (all_expanded)
+        {
+            select_planes.push_back(v.getPlane());
+        }
+        else
+        {
+            Plane p = c_prime.getRandomPlane();
+            c_prime_left, c_prime_right = cutPlane(c_prime);
+            Node v_prime = makeNewChild(c_prime_left, c_prime_right, p);
+            select_planes.push_back(p);
+            return select_planes, v_prime;
+        }
+    }
+    return select_planes, v;
 }
