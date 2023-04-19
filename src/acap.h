@@ -1,7 +1,6 @@
 #pragma once
 
 #include "graphics/shape.h"
-#include "halfedge/halfedge_mesh.h"
 
 #include "Eigen/StdList"
 #include "Eigen/StdVector"
