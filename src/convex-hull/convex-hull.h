@@ -1,13 +1,12 @@
 #pragma once
 
-#include "Eigen/Dense"
 #include <vector>
 
+#include "Eigen/Dense"
+
 class ConvexHull {
-public:
+ public:
+    //    static calculate(std::vector<Eigen::Vector3f> );
 
-    static calculate(std::vector<Eigen::Vector3f> );
-
-private:
-
+ private:
 };

@@ -1,30 +1,40 @@
 #pragma once
 
-#include "Eigen/Dense"
-#include "convex-hull/MCTS.h"
-#include "convex-hull/convex-hull.h"
+#include <array>
 #include <vector>
 
+#include "Eigen/Dense"
+#include "convex-hull/convex-hull.h"
+#include "quickhull/QuickHull.hpp"
+
+using namespace std;
+using namespace Eigen;
+
 class Mesh {
-private:
+ private:
+    vector<Vector3f> m_verts;
+    vector<Vector3i> m_triangles;
 
-public:
-    // TODO: populate instance variables
+    // for Monte-Carlo Tree Search
+    array<double, 6> m_bbox;
+    // for Eigenvalue computations
+    array<double, 3> m_barycenter;
+    // for optional PCA
+    array<array<double, 3>, 3> m_rot;
 
-    std::vector<Eigen::Vector3f> m_verts;
-    std::vector<Eigen::Vector3i> m_triangles;
+ public:
+    Mesh() = default;
+    Mesh(vector<Vector3f> verts, vector<Vector3i> tris) : m_verts(verts), m_triangles(tris) {}
 
-    float volume() const;
+    // Computes the volume of a mesh.
+    double volume() const;
 
-    Mesh();
-
-    void init(std::vector<Eigen::Vector3f> vertices,  std::vector<Eigen::Vector3i> triangles);
-
-    Mesh VCH() const;
-
+    // Computes the convex hull of the mesh. Fast, but can be unstable.
+    Mesh computeCH() const;
+    // Computes the volumetric(?) convex hull of the mesh. More stable, but slower than CH.
+    Mesh computeVCH() const;
 
     std::vector<Mesh> merge(const std::vector<Mesh>& Q);
 
-    std::pair<Mesh,Mesh> clip(const Plane& p);
-
+    //    std::pair<Mesh, Mesh> clip(const Plane& p);
 };
