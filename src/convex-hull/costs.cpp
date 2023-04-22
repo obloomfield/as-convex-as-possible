@@ -8,11 +8,7 @@ float Cost::v_cost(const Mesh& m1, const Mesh& m2) {
 }
 
 float Cost::h_cost(const Mesh& m1, const Mesh& m2) {
-    // TODO: figure out cutting cost
-
-    // farthest away the closest thing is...
-
-    return 0.;
+    return fmax(v_cost(m1,m2), h_cost(m1,m2));
 }
 
 // ~~~

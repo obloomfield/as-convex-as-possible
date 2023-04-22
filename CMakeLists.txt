@@ -63,6 +63,9 @@ add_executable(${PROJECT_NAME}
    src/convex-hull/cost.cpp
    src/convex-hull/cost.h
 
+   src/convex-hull/MCTS.cpp
+   src/convex-hull/MCTS.h
+
 )
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`
