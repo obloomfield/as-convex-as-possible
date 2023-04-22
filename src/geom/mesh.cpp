@@ -3,14 +3,20 @@
 using namespace std;
 using namespace Eigen;
 
+inline double signed_tri_volume(const Vector3d &p1, const Vector3d &p2, const Vector3d &p3) {
+    // From here: https://stackoverflow.com/a/1568551
+    return p1.dot(p2.cross(p3)) / 6.;
+}
 
-Mesh Mesh::VCH() const {
-    Mesh new_mesh;
+double Mesh::volume() const {
+    double volume = 0;
+    for (auto const &tri : this->m_triangles) {
+        int i0 = tri[0], i1 = tri[1], i2 = tri[2];
+        volume += signed_tri_volume(this->m_verts[i0], this->m_verts[i1], this->m_verts[i2]);
+    }
+    return abs(volume);
+}
 
-    ConvexHull ch;
-    ch.calculate(m_verts);
-    for (const Vector3f& v : ch.getVertices()) new_mesh.m_verts.push_back(v);
-
-    // TODO: how to populate edges and faces
-    return new_mesh;
+Mesh Mesh::computeCH() const {
+    bool success = true;
 }
