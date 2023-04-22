@@ -80,9 +80,14 @@ vector<Mesh> ACAP::ACD(Mesh mesh) {
             float cost = Cost::total_cost(cur_mesh,convex);
 
             if (cost > COST_THRESHOLD) {
-                // TODO: MONTE CARLO TREE SEARCH, CUTTING PLANE. Modify new_Q
-
+                // TODO: MONTE CARLO TREE SEARCH
                 Plane p = MCTS::cuttingPlane(cur_mesh);
+
+                // TODO: Clip by plane (refine and cut)
+                auto [cL,cR] = mesh.clip(p);
+
+                if (cL.m_verts.size() > 0) new_Q.push_back(cL);
+                if (cR.m_verts.size() > 0) new_Q.push_back(cR);
 
             } else { // put back!
                 D.push_back(convex);
@@ -95,11 +100,7 @@ vector<Mesh> ACAP::ACD(Mesh mesh) {
     }
 
     // TODO: implement merge
-    return merge(mesh, Q);
-}
-
-vector<Mesh> merge(Mesh& mesh, vector<Mesh>& convex_meshes) {
-    // TODO: implement merging meshes.
+    return mesh.merge(Q);
 }
 
 

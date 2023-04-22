@@ -3,6 +3,7 @@
 #include "graphics/shape.h"
 
 #include "geom/mesh.h"
+#include "convex-hull/cost.h"
 
 #include "Eigen/StdList"
 #include "Eigen/StdVector"
@@ -12,6 +13,8 @@
 #include <cmath>
 
 class Shader;
+
+float COST_THRESHOLD = 100.; //TODO: assign a better value
 
 class ACAP
 {
@@ -47,16 +50,8 @@ public:
 private:
     Shape m_shape;
 
+    std::vector<Mesh> ACD(Mesh mesh);
 
-
-
-    // ================== Students, If You Choose To Modify The Code Below, It's On You
-
-
-
-
-
-
-
+    std::vector<Mesh> merge(Mesh& mesh, std::vector<Mesh>& convex_meshes);
 
 };

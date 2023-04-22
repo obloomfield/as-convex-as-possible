@@ -12,5 +12,12 @@ Mesh Mesh::VCH() const {
     for (const Vector3f& v : ch.getVertices()) new_mesh.m_verts.push_back(v);
 
     // TODO: how to populate edges and faces
+
+
     return new_mesh;
+}
+
+
+float Mesh::volume() const {
+    // TODO: calculate volume
 }
