@@ -4,7 +4,9 @@
 #include <vector>
 
 #include "Eigen/Dense"
+#include "btConvexHull/btConvexHullComputer.h"
 #include "convex-hull/convex-hull.h"
+#include "graphics/shape.h"
 #include "quickhull/QuickHull.hpp"
 
 using namespace std;
@@ -25,6 +27,7 @@ class Mesh {
  public:
     Mesh() = default;
     Mesh(vector<Vector3f> verts, vector<Vector3i> tris) : m_verts(verts), m_triangles(tris) {}
+    Mesh(Shape m_shape) : m_verts(m_shape.getVertices()), m_triangles(m_shape.getFaces()) {}
 
     // Computes the volume of a mesh.
     double volume() const;
