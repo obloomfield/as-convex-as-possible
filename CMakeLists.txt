@@ -26,46 +26,12 @@ find_package(Qt6 REQUIRED COMPONENTS Gui)
 include_directories(src)
 include_directories(libs)
 
+# Find all source files
+file(GLOB_RECURSE MAIN_SRC "src/*.h" "src/*.cc" "src/*.hpp" "src/*.cpp")
+
 # Specifies .cpp and .h files to be passed to the compiler
 add_executable(${PROJECT_NAME}
-
-   src/main.cpp
-   src/mainwindow.cpp
-   src/glwidget.cpp
-   src/graphics/camera.cpp
-   src/graphics/graphicsdebug.cpp
-   src/graphics/meshloader.cpp
-   src/graphics/shader.cpp
-   src/graphics/shape.cpp
-
-
-   src/acap.cpp
-
-
-   src/mainwindow.h
-   src/glwidget.h
-   src/graphics/camera.h
-   src/graphics/graphicsdebug.h
-   src/graphics/meshloader.h
-   src/graphics/shader.h
-   src/graphics/shape.h
-   util/tiny_obj_loader.h
-   util/unsupportedeigenthing/OpenGLSupport
-
-   src/acap.h
-
-   src/convex-hull/convex-hull.h
-   src/convex-hull/convex-hull.cpp
-
-   src/geom/mesh.h
-   src/geom/mesh.cpp
-
-   src/convex-hull/cost.cpp
-   src/convex-hull/cost.h
-
-   src/convex-hull/MCTS.cpp
-   src/convex-hull/MCTS.h
-
+    ${MAIN_SRC}
 )
 
 # GLEW: this creates its library and allows you to `#include "GL/glew.h"`
