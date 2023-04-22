@@ -7,6 +7,7 @@ float Cost::v_cost(const Mesh& m1, const Mesh& m2) {
     return pow(3 * fabs(v1 - v2) / (4 * M_PI), 1.0 / 3.) * K;
 }
 
+
 float Cost::h_cost(const Mesh& m1, const Mesh& m2) {
     // TODO: figure out cutting cost
 

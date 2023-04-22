@@ -12,7 +12,7 @@ using namespace Eigen;
 
 GLWidget::GLWidget(QWidget *parent) :
     QOpenGLWidget(parent),
-    m_arap(),
+    m_acap(),
     m_camera(),
     m_defaultShader(),
     m_pointShader(),
@@ -77,7 +77,7 @@ void GLWidget::initializeGL()
 
     // Initialize ARAP, and get parameters needed to decide the camera position, etc
     Vector3f coeffMin, coeffMax;
-    m_arap.init(coeffMin, coeffMax);
+    m_acap.init(coeffMin, coeffMax);
 
     Vector3f center = (coeffMax + coeffMin) / 2.0f;
     float extentLength  = (coeffMax - coeffMin).norm();
@@ -114,7 +114,7 @@ void GLWidget::paintGL()
     m_defaultShader->bind();
     m_defaultShader->setUniform("proj", m_camera.getProjection());
     m_defaultShader->setUniform("view", m_camera.getView());
-    m_arap.draw(m_defaultShader, GL_TRIANGLES);
+    m_acap.draw(m_defaultShader, GL_TRIANGLES);
     m_defaultShader->unbind();
 
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -125,7 +125,7 @@ void GLWidget::paintGL()
     m_pointShader->setUniform("vSize",  m_vSize);
     m_pointShader->setUniform("width",  width());
     m_pointShader->setUniform("height", height());
-    m_arap.draw(m_pointShader, GL_POINTS);
+    m_acap.draw(m_pointShader, GL_POINTS);
     m_pointShader->unbind();
 }
 
@@ -160,7 +160,7 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
 
     // Get closest vertex to ray
     const Vector3f ray = transformToWorldRay(currX, currY);
-    const int closest_vertex = m_arap.getClosestVertex(m_camera.getPosition(), ray, m_vertexSelectionThreshold);
+    const int closest_vertex = m_acap.getClosestVertex(m_camera.getPosition(), ray, m_vertexSelectionThreshold);
 
     // Switch on button
     switch (event->button()) {
@@ -168,9 +168,9 @@ void GLWidget::mousePressEvent(QMouseEvent *event)
         // Capture
         m_rightCapture = true;
         // Anchor/un-anchor the vertex
-        m_rightClickSelectMode = m_arap.select(m_pointShader, closest_vertex);
+        m_rightClickSelectMode = m_acap.select(m_pointShader, closest_vertex);
         // recompute anchor index map
-        m_arap.compute_anchor_map();
+//        m_acap.compute_anchor_map();
         break;
     }
     case Qt::MouseButton::LeftButton: {
@@ -206,22 +206,22 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
     // If right is held down
     if (m_rightCapture) {
         // Get closest vertex to ray
-        const int closest_vertex = m_arap.getClosestVertex(m_camera.getPosition(), ray, m_vertexSelectionThreshold);
+        const int closest_vertex = m_acap.getClosestVertex(m_camera.getPosition(), ray, m_vertexSelectionThreshold);
 
         // Anchor/un-anchor the vertex
         if (m_rightClickSelectMode == SelectMode::None) {
-            m_rightClickSelectMode = m_arap.select(m_pointShader, closest_vertex);
+            m_rightClickSelectMode = m_acap.select(m_pointShader, closest_vertex);
         } else if (closest_vertex != -1) {
-            m_arap.selectWithSpecifiedMode(m_pointShader, closest_vertex, m_rightClickSelectMode);
+            m_acap.selectWithSpecifiedMode(m_pointShader, closest_vertex, m_rightClickSelectMode);
         }
 
         return;
     }
 
     // If the selected point is an anchor point
-    if (m_lastSelectedVertex != -1 && m_arap.getAnchorPos(m_lastSelectedVertex, pos, ray, m_camera.getPosition())) {
+    if (m_lastSelectedVertex != -1 && m_acap.getAnchorPos(m_lastSelectedVertex, pos, ray, m_camera.getPosition())) {
         // Move it
-        m_arap.move(m_lastSelectedVertex, pos);
+//        m_acap.move(m_lastSelectedVertex, pos);
     } else {
         // Rotate the camera
         const int deltaX = currX - m_lastX;
@@ -245,9 +245,9 @@ void GLWidget::mouseReleaseEvent(QMouseEvent *event)
     m_rightClickSelectMode = SelectMode::None;
 
     // compute L and weights on release
-    m_arap.compute_L_and_weights();
-    // set previous positions
-    m_arap.set_prev_positions();
+//    m_acap.compute_L_and_weights();
+//    // set previous positions
+//    m_acap.set_prev_positions();
 }
 
 void GLWidget::wheelEvent(QWheelEvent *event)
