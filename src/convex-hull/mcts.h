@@ -2,10 +2,10 @@
 #define MCTS_H
 
 
-class mcts
+class MCTS
 {
 public:
-    mcts();
+    MCTS();
 };
 
 #endif // MCTS_H

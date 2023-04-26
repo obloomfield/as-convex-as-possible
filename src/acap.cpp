@@ -76,12 +76,12 @@ vector<Mesh> ACAP::ACD(Mesh mesh) {
     while (Q.size() > 0) {
         vector<Mesh> new_Q;
         for (const Mesh& cur_mesh : Q) {
-            Mesh convex = cur_mesh.VCH();
+            Mesh convex = cur_mesh.computeVCH();
             float cost = Cost::total_cost(cur_mesh,convex);
 
             if (cost > COST_THRESHOLD) {
                 // TODO: MONTE CARLO TREE SEARCH
-                Plane p = MCTS::cuttingPlane(cur_mesh);
+                quickhull::Plane p = MCTS::cuttingPlane(cur_mesh);
 
                 // TODO: Clip by plane (refine and cut)
                 auto [cL,cR] = mesh.clip(p);
