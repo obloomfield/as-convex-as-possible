@@ -159,6 +159,11 @@ namespace quickhull {
 			return dx*dx+dy*dy+dz*dz;
 		}
 
+        // CUSTOM ADD: convert to Eigen::Vector3X
+        /* ~~~~ For example: ~~~
+         * quickhull::Vector3<float> v(1.0f, 2.0f, 3.0f);
+         * Eigen::Vector3f ev = v.toEigen<float>();
+         */
         template <typename EigenT>
         Eigen::Matrix<EigenT, 3, 1> toEigen() const {
             return Eigen::Matrix<EigenT, 3, 1>(static_cast<EigenT>(x),
