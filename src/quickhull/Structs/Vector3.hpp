@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <Eigen/Dense>
 
 /*
  * Implementation of the 3D QuickHull algorithm by Antti Kuukka
@@ -53,6 +54,8 @@ namespace quickhull {
 		}
 		
 		T x,y,z;
+
+
 		
 		T dotProduct(const Vector3& other) const {
 			return x*other.x+y*other.y+z*other.z;
@@ -155,6 +158,13 @@ namespace quickhull {
 			const T dz = z-other.z;
 			return dx*dx+dy*dy+dz*dz;
 		}
+
+        template <typename EigenT>
+        Eigen::Matrix<EigenT, 3, 1> toEigen() const {
+            return Eigen::Matrix<EigenT, 3, 1>(static_cast<EigenT>(x),
+                                               static_cast<EigenT>(y),
+                                               static_cast<EigenT>(z));
+        }
 		
 	};
 	
