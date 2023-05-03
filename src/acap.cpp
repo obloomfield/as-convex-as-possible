@@ -29,16 +29,6 @@ using namespace Eigen;
 // - Minus and equal keys (click repeatedly) to change the size of the vertices
 
 
-/*
- *
- * Notes:
- *
- * Regenerate L and weights on click release. When L is regenerated, recompute the factorization
- * Also set "previous vertices" on click release to be used as initial positions
- *
- * Do we need the weights anywhere else other than for L? Might be good to store it regardless?
- *
- */
 
 void ACAP::init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax)
 {
