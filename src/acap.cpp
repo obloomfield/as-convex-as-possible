@@ -12,7 +12,7 @@ using namespace std;
 using namespace Eigen;
 
 
-#define MESH_PATH "meshes/bunny.obj"
+#define MESH_PATH "meshes/cube.obj"
 
 
 // Here are some helpful controls for the application
@@ -28,8 +28,6 @@ using namespace Eigen;
 //
 // - Minus and equal keys (click repeatedly) to change the size of the vertices
 
-
-
 void ACAP::init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax)
 {
     vector<Vector3f> vertices;
@@ -41,6 +39,10 @@ void ACAP::init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax)
     }
 
     Mesh mesh(m_shape); // our custom datatype
+    Plane p(Vector3d(-1.2, 1.6, 1.5),Vector3d(1.4, -1.3, 1.5),Vector3d(-1.2, 1.6, -1.005929),Vector3d(1.4, -1.3, -1.005929));
+    mesh.cut_plane(p);
+
+    return;
 
     vector<Mesh> decomp = ACD(mesh);
 
@@ -71,13 +73,13 @@ vector<Mesh> ACAP::ACD(Mesh mesh) {
 
             if (cost > COST_THRESHOLD) {
                 // TODO: MONTE CARLO TREE SEARCH
-                quickhull::Plane p = MCTS::cuttingPlane(cur_mesh);
+//                quickhull::Plane p = MCTS::cuttingPlane(cur_mesh);
 
                 // TODO: Clip by plane (refine and cut)
-                auto [cL,cR] = mesh.clip(p);
+//                auto [cL,cR] = mesh.clip(p);
 
-                if (cL.m_verts.size() > 0) new_Q.push_back(cL);
-                if (cR.m_verts.size() > 0) new_Q.push_back(cR);
+//                if (cL.m_verts.size() > 0) new_Q.push_back(cL);
+//                if (cR.m_verts.size() > 0) new_Q.push_back(cR);
 
             } else { // put back!
                 D.push_back(convex);

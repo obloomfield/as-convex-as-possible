@@ -8,6 +8,8 @@
 #include "convex-hull/convex-hull.h"
 #include "graphics/shape.h"
 #include "quickhull/QuickHull.hpp"
+#include "plane.h"
+
 
 using namespace std;
 using namespace Eigen;
@@ -40,4 +42,5 @@ class Mesh {
     std::vector<Mesh> merge(const std::vector<Mesh>& Q);
 
     //    std::pair<Mesh, Mesh> clip(const Plane& p);
+    std::vector<Mesh> cut_plane(Plane& p);
 };
