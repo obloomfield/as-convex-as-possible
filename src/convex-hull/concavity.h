@@ -5,21 +5,27 @@
 #include "geom/mesh.h"
 
 
-double K = 100.;
+#define k 0.3
+#define POINTS_PER_UNIT_AREA 3000
 
 class ConcavityMetric {
 public:
 
     /*
      * The concavity of a solid shape S is:
-            Concavity(S) = max(H_b(S), H_i(S))
+            Concavity(S) = max(𝑘R_v(S), H_i(S))
 
        Where:
-        H_b(S) = H(Sample(𝜕S), Sample(𝜕CH(S)))
-            - the Hausdorff distance between a sample on the original shape's boundary surface
-              and a sample on the convex hull of the bonudary surface of the shape
 
-        H_i(S) = H(Sample(IntS), Sample(Int CH(S)))
+        𝑘Rv(S) = ((3Vol(CH(S) - Vol(S)) / 4pi)^1/3
+            - approximates H_i(S) = H(Sample(IntS), Sample(Int CH(S)))
+            - originally, the Hausdorff distance between a sample on the original shape's boundary surface
+              and a sample on the convex hull of the bonudary surface of the shape
+            - volume-based surrogate term accelerates computation and avoids having to compute interior points
+            - Rv(S) often overestimaets H_i(S), so use a constant k (0, 1] to estimates
+
+
+        H_b(S) = H(Sample(𝜕S), Sample(𝜕CH(S)))
             - the Hausdorff distance
 
      */
@@ -27,6 +33,8 @@ public:
 
 
 private:
+
+    static float R_vol_surrogate();
 
     /*
      * Hausdorff distance for two point sets:
@@ -41,11 +49,17 @@ private:
 
     // should we store the convex hull as a field here? or should it be passed in along with the mesh to the concavity function
 
-
     /*
-     * given a len of a vector and a number of samples (should it be a percent of the vector len?),
-     * return a vector of indices which represent a random sample from the vector
+     * calculate the number of samples to be used by taking 3000 samples per total surface area
      */
-    static std::vector<int> sample(int orig_len, int samples);
+    static int calc_num_samples(const Mesh& S);
+
+
+
+//    /*
+//     * given a len of a vector and a number of samples (should it be a percent of the vector len?),
+//     * return a vector of indices which represent a random sample from the vector
+//     */
+//    static std::vector<int> sample(int orig_len, int samples);
 
 };

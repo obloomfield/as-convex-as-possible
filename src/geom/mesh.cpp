@@ -297,3 +297,43 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
     std::vector<Mesh> out;
     return out;
 }
+
+// go through each triangle and calculate area
+float Mesh::calc_triangle_areas() {
+
+    float total_area = 0.f;
+
+    for (int i = 0; i < m_triangles.size(); ++i) {
+
+        auto& t = m_triangles[i];
+
+        auto& v1 = m_verts[t[0]];
+        auto& v2 = m_verts[t[1]];
+        auto& v3 = m_verts[t[2]];
+
+        // area of a triangle is two of its vectors crossed / 2
+        auto tri_area = (v2 - v1).cross(v3 - v1).norm() / 2.f;
+        total_area += tri_area;
+        tri_to_area[i] = tri_area;
+    }
+
+    return total_area;
+}
+
+vector<Vector3f> Mesh::boundary_sample(int samples_per_unit_area) {
+
+    // samples is based on the total surface area
+    int num_samples = static_cast<int>(total_surface_area * samples_per_unit_area);
+
+     vector<Vector3f> samples;
+     samples.reserve(num_samples);
+
+    // with the number of samples, sample a random triangle based on its area and sample a point on it
+    for (int i = 0; i < num_samples; ++i) {
+
+
+
+    }
+
+    return samples;
+}
