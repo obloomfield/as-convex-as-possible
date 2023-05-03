@@ -5,10 +5,15 @@ float ConcavityMetric::concavity(const Mesh& S) {
 
     // calculate H_i(S)
         // need interior of mesh
+        // calculate convex hull of interior
+        // get sample from interior and its convex hull
+        // calculate hausdorff distance of samples
 
     // calculate H_b(S)
-        // calculate convex hull
-
+        // need surface boundary of mesh -> just normal trimesh vertices?
+        // calculate convex hull of surface boundary
+        // sample from surface boundary and its convex hull
+        // calculate hausdorff distance of samples
 
     // return max of the two
 
