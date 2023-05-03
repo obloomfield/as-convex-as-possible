@@ -3,11 +3,8 @@
 
 float ConcavityMetric::concavity(const Mesh& S) {
 
-    // calculate H_i(S)
-        // need interior of mesh
-        // calculate convex hull of interior
-        // get sample from interior and its convex hull
-        // calculate hausdorff distance of samples
+    // calculate R_v(S)
+        // use volume approximation, need way to get Vol(S)
 
     // calculate H_b(S)
         // need surface boundary of mesh -> just normal trimesh vertices?
@@ -73,29 +70,30 @@ float ConcavityMetric::hausdorff_distance(std::vector<Eigen::Vector3f>& A, std::
 }
 
 
-// implements reservoir sampling algorithm -- IDK IF THIS WORKS LOL
-std::vector<int> ConcavityMetric::sample(int orig_len, int samples) {
+// THIS IS WRONG
+//// implements reservoir sampling algorithm -- IDK IF THIS WORKS LOL
+//std::vector<int> ConcavityMetric::sample(int orig_len, int samples) {
 
-    std::vector<int> reservoir(samples);
-    int i, j;
+//    std::vector<int> reservoir(samples);
+//    int i, j;
 
-    // TODO: move these declaration to be declared once for efficiency
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_real_distribution<double> dist(0.0, 1.0);
+//    // TODO: move these declaration to be declared once for efficiency
+//    std::random_device rd;
+//    std::mt19937 gen(rd());
+//    std::uniform_real_distribution<double> dist(0.0, 1.0);
 
-    // Fill the reservoir array with the first k elements from the stream.
-    for (i = 0; i < samples; i++) {
-        reservoir[i] = i;
-    }
+//    // Fill the reservoir array with the first k elements from the stream.
+//    for (i = 0; i < samples; i++) {
+//        reservoir[i] = i;
+//    }
 
-    // Iterate over the remaining elements and decide whether to include them in the reservoir.
-    for (i = samples; i < orig_len; i++) {
-        j = floor(dist(gen) * i);
-        if (j < samples) {
-            reservoir[j] = i;
-        }
-    }
+//    // Iterate over the remaining elements and decide whether to include them in the reservoir.
+//    for (i = samples; i < orig_len; i++) {
+//        j = floor(dist(gen) * i);
+//        if (j < samples) {
+//            reservoir[j] = i;
+//        }
+//    }
 
-    return reservoir;
-}
+//    return reservoir;
+//}
