@@ -77,6 +77,7 @@ vector<Mesh> ACAP::ACD(Mesh mesh) {
                 //                if (cL.m_verts.size() > 0) new_Q.push_back(cL);
                 //                if (cR.m_verts.size() > 0) new_Q.push_back(cR);
 
+                // TODO: ...
             } else {  // put back!
                 D.push_back(convex);
                 mesh_parts.push_back(cur_mesh);
