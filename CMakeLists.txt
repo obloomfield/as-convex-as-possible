@@ -27,7 +27,7 @@ include_directories(src)
 include_directories(libs)
 
 # Find all source files
-file(GLOB_RECURSE MAIN_SRC "src/*.h" "src/*.cc" "src/*.hpp" "src/*.cpp")
+file(GLOB_RECURSE MAIN_SRC "src/*.h" "src/*.c" "src/*.cc" "src/*.hpp" "src/*.cpp")
 
 # Specifies .cpp and .h files to be passed to the compiler
 add_executable(${PROJECT_NAME}

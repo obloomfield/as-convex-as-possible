@@ -1,5 +1,6 @@
 #include "mesh.h"
 
+#include "geom/utils.h"
 #include "mcut/mcut.h"
 
 using namespace std;
@@ -11,54 +12,18 @@ using namespace Eigen;
         std::exit(1);                               \
     }
 
-void writeOBJ(
-    const std::string& path,
-    const float* ccVertices,
-    const int ccVertexCount,
-    const uint32_t* ccFaceIndices,
-    const uint32_t* faceSizes,
-    const uint32_t ccFaceCount)
-{
-    printf("write file: %s\n", path.c_str());
+constexpr string_view OUT_DIR = "fragments/";
 
-    std::ofstream file(path);
-
-    // write vertices and normals
-    for (uint32_t i = 0; i < (uint32_t)ccVertexCount; ++i) {
-        double x = ccVertices[(McSize)i * 3 + 0];
-        double y = ccVertices[(McSize)i * 3 + 1];
-        double z = ccVertices[(McSize)i * 3 + 2];
-        file << "v " << x << " " << y << " " << z << std::endl;
-    }
-
-    int faceVertexOffsetBase = 0;
-
-    // for each face in CC
-    for (uint32_t f = 0; f < ccFaceCount; ++f) {
-
-        int faceSize = faceSizes[f];
-        file << "f ";
-        // for each vertex in face
-        for (int v = 0; (v < faceSize); v++) {
-            const int ccVertexIdx = ccFaceIndices[(McSize)faceVertexOffsetBase + v];
-            file << (ccVertexIdx + 1) << " ";
-        }
-        file << std::endl;
-
-        faceVertexOffsetBase += faceSize;
-    }
-}
-
-inline double signed_tri_volume(const Vector3d &p1, const Vector3d &p2, const Vector3d &p3) {
+inline double signed_tri_volume(const Vector3f& p1, const Vector3f& p2, const Vector3f& p3) {
     // From here: https://stackoverflow.com/a/1568551
     return p1.dot(p2.cross(p3)) / 6.;
 }
 
 double Mesh::volume() const {
     double volume = 0;
-    for (auto const &tri : this->m_triangles) {
+    for (auto const& tri : this->m_triangles) {
         int i0 = tri[0], i1 = tri[1], i2 = tri[2];
-//        volume += signed_tri_volume(this->m_verts[i0], this->m_verts[i1], this->m_verts[i2]);
+        volume += signed_tri_volume(this->m_verts[i0], this->m_verts[i1], this->m_verts[i2]);
     }
     return abs(volume);
 }
@@ -71,7 +36,7 @@ Mesh Mesh::computeCH() const {
     vector<quickhull::Vector3<float>> point_cloud;
     point_cloud.reserve(this->m_verts.size());
     // Populate point cloud
-    for (const auto &v : this->m_verts) {
+    for (const auto& v : this->m_verts) {
         point_cloud.emplace_back(v[0], v[1], v[2]);
     }
 
@@ -82,14 +47,14 @@ Mesh Mesh::computeCH() const {
     }
 
     // Convert back from QH representation to mesh
-    const auto &ibuf = hull.getIndexBuffer();
-    const auto &vbuf = hull.getVertexBuffer();
+    const auto& ibuf = hull.getIndexBuffer();
+    const auto& vbuf = hull.getVertexBuffer();
 
     vector<Vector3f> new_verts;
     vector<Vector3i> new_tris;
     new_verts.reserve(vbuf.size());
     new_tris.reserve(ibuf.size() / 3);
-    for (const auto &v : vbuf) {
+    for (const auto& v : vbuf) {
         new_verts.emplace_back(v.x, v.y, v.z);
     }
     for (int i = 0; i < ibuf.size(); i += 3) {
@@ -106,7 +71,7 @@ Mesh Mesh::computeVCH() const {
     // Convert verts to vector<array<double, 3>>
     vector<array<double, 3>> points;
     points.reserve(this->m_verts.size());
-    for (const auto &v : this->m_verts) {
+    for (const auto& v : this->m_verts) {
         points.push_back({v[0], v[1], v[2]});
     }
 
@@ -125,8 +90,8 @@ Mesh Mesh::computeVCH() const {
         new_verts.emplace_back(ch.vertices[i].getX(), ch.vertices[i].getY(), ch.vertices[i].getZ());
     }
     for (int32_t i = 0; i < ch.faces.size(); i++) {
-        const auto *e = &ch.edges[ch.faces[i]];
-        const auto *next_e = e->getNextEdgeOfFace();
+        const auto* e = &ch.edges[ch.faces[i]];
+        const auto* next_e = e->getNextEdgeOfFace();
         auto a = e->getSourceVertex(), b = e->getTargetVertex(), c = next_e->getTargetVertex();
         while (a != c) {
             new_tris.emplace_back(a, b, c);
@@ -140,28 +105,27 @@ Mesh Mesh::computeVCH() const {
     return new_mesh;
 }
 
+std::vector<Mesh> Mesh::merge(const std::vector<Mesh>& Q) {
+    // TODO: implement
+    return {};
+}
+
 std::vector<Mesh> Mesh::cut_plane(Plane& p) {
-    auto [p0,p1,p2,p3] = p.bounds();
+    auto [p0, p1, p2, p3] = p.bounds();
 
-    double cutMeshVertices[] = {
-        p0.x(), p0.y(), p0.z(),
-        p1.x(), p1.y(), p1.z(),
-        p2.x(), p2.y(), p2.z(),
-        p3.x(), p3.y(), p3.z()
-    };
+    double cutMeshVertices[] = {p0.x(), p0.y(), p0.z(), p1.x(), p1.y(), p1.z(),
+                                p2.x(), p2.y(), p2.z(), p3.x(), p3.y(), p3.z()};
 
-    uint32_t cutMeshFaces[] = { // arbitrary, just to trimesh the plane
-        1, 2, 0,
-        1, 3, 2
-    };
+    uint32_t cutMeshFaces[] = {// arbitrary, just to trimesh the plane
+                               1, 2, 0, 1, 3, 2};
 
     uint32_t numCutMeshVertices = 4;
     uint32_t numCutMeshFaces = 2;
 
     int numVertices = m_verts.size();
     int numFaces = m_triangles.size();
-    double vertices[numVertices*3];
-    uint32_t faces[numFaces*3], faceSizes[numFaces];
+    double vertices[numVertices * 3];
+    uint32_t faces[numFaces * 3], faceSizes[numFaces];
 
     int i = 0;
     for (const Vector3f& v : m_verts) {
@@ -184,37 +148,29 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
 
     ASSERT(err == MC_NO_ERROR);
 
-    auto MC_DISPATCH_FILTER_CLOSED_FRAGMENTS = (
-        MC_DISPATCH_REQUIRE_THROUGH_CUTS |
-        MC_DISPATCH_FILTER_FRAGMENT_LOCATION_ABOVE |
-        MC_DISPATCH_FILTER_FRAGMENT_LOCATION_BELOW |
-        MC_DISPATCH_FILTER_FRAGMENT_SEALING_INSIDE
-                                                     );
+    auto MC_DISPATCH_FILTER_CLOSED_FRAGMENTS =
+        (MC_DISPATCH_REQUIRE_THROUGH_CUTS | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_ABOVE |
+         MC_DISPATCH_FILTER_FRAGMENT_LOCATION_BELOW | MC_DISPATCH_FILTER_FRAGMENT_SEALING_INSIDE);
 
     // 3. do the magic!
     // ----------------
-    err = mcDispatch(
-        context,
-        (MC_DISPATCH_VERTEX_ARRAY_DOUBLE | MC_DISPATCH_FILTER_CLOSED_FRAGMENTS),
-        vertices,
-        faces,
-        faceSizes,
-        numVertices,
-        numFaces,
-        cutMeshVertices,
-        cutMeshFaces,
-        nullptr, // cutMeshFaceSizes, // no need to give 'faceSizes' parameter since cut-mesh is a triangle mesh
-        numCutMeshVertices,
-        numCutMeshFaces);
+    err =
+        mcDispatch(context, (MC_DISPATCH_VERTEX_ARRAY_DOUBLE | MC_DISPATCH_FILTER_CLOSED_FRAGMENTS),
+                   vertices, faces, faceSizes, numVertices, numFaces, cutMeshVertices, cutMeshFaces,
+                   nullptr,  // cutMeshFaceSizes, // no need to give 'faceSizes' parameter since
+                             // cut-mesh is a triangle mesh
+                   numCutMeshVertices, numCutMeshFaces);
 
     ASSERT(err == MC_NO_ERROR);
 
-    // 4. query the number of available connected component (all types)
+    // 4. query the number of available connected component (here, we're only interested in the
+    // fragments)
     // -------------------------------------------------------------
     uint32_t numConnComps;
     std::vector<McConnectedComponent> connComps;
 
-    err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT, 0, NULL, &numConnComps);
+    err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT, 0, NULL,
+                                   &numConnComps);
 
     ASSERT(err == MC_NO_ERROR);
 
@@ -225,7 +181,8 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
 
     connComps.resize(numConnComps);
 
-    err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT, (uint32_t)connComps.size(), connComps.data(), NULL);
+    err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT,
+                                   (uint32_t)connComps.size(), connComps.data(), NULL);
 
     ASSERT(err == MC_NO_ERROR);
 
@@ -233,14 +190,15 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
     // -------------------------------------------------------
 
     for (int i = 0; i < (int)connComps.size(); ++i) {
-        McConnectedComponent connComp = connComps[i]; // connected compoenent id
+        McConnectedComponent connComp = connComps[i];  // connected compoenent id
 
         McSize numBytes = 0;
 
         // query the vertices
         // ----------------------
 
-        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_FLOAT, 0, NULL, &numBytes);
+        err = mcGetConnectedComponentData(
+            context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_FLOAT, 0, NULL, &numBytes);
 
         ASSERT(err == MC_NO_ERROR);
 
@@ -248,37 +206,38 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
 
         std::vector<float> vertices(numberOfVertices * 3u);
 
-        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_FLOAT, numBytes, (void*)vertices.data(), NULL);
+        err =
+            mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_FLOAT,
+                                        numBytes, (void*)vertices.data(), NULL);
 
         ASSERT(err == MC_NO_ERROR);
 
         // query the faces
         // -------------------
 
-        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, 0, NULL, &numBytes);
+        err = mcGetConnectedComponentData(
+            context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, 0, NULL, &numBytes);
         ASSERT(err == MC_NO_ERROR);
         std::vector<uint32_t> faceIndices(numBytes / sizeof(uint32_t), 0);
-        err = mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, numBytes, faceIndices.data(), NULL);
+        err = mcGetConnectedComponentData(context, connComp,
+                                          MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, numBytes,
+                                          faceIndices.data(), NULL);
         ASSERT(err == MC_NO_ERROR);
 
-        std::vector<uint32_t> faceSizes(faceIndices.size()/3, 3);
+        std::vector<uint32_t> faceSizes(faceIndices.size() / 3, 3);
         printf("faces: %d\n", (int)faceSizes.size());
 
-        char fnameBuf[512];
-        sprintf(fnameBuf, "cc%d.off", i);
+        ostringstream fname;
+        fname << OUT_DIR << "cc" << i << ".obj";
 
         std::vector<float> f;
-        for(uint32_t i =0; i < (uint32_t)vertices.size(); ++i)
-            f.push_back(vertices[i]);
+        for (uint32_t i = 0; i < (uint32_t)vertices.size(); ++i) f.push_back(vertices[i]);
 
         // save to mesh file (.obj)
         // ------------------------
-        writeOBJ(fnameBuf,
-            (float*)f.data(),
-            (uint32_t)vertices.size() / 3,
-            (uint32_t*)faceIndices.data(),
-            (uint32_t*)faceSizes.data(),
-            (uint32_t)faceSizes.size());
+        writeOBJ(fname.str(), (float*)f.data(), (uint32_t)vertices.size() / 3,
+                 (uint32_t*)faceIndices.data(), (uint32_t*)faceSizes.data(),
+                 (uint32_t)faceSizes.size());
     }
 
     // 6. free connected component data
@@ -299,12 +258,10 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
 }
 
 // go through each triangle and calculate area
-float Mesh::calc_triangle_areas() {
-
+float Mesh::compute_tri_areas() {
     float total_area = 0.f;
 
     for (int i = 0; i < m_triangles.size(); ++i) {
-
         auto& t = m_triangles[i];
 
         auto& v1 = m_verts[t[0]];
@@ -314,25 +271,22 @@ float Mesh::calc_triangle_areas() {
         // area of a triangle is two of its vectors crossed / 2
         auto tri_area = (v2 - v1).cross(v3 - v1).norm() / 2.f;
         total_area += tri_area;
-        tri_to_area[i] = tri_area;
+        m_tri_areas[i] = tri_area;
     }
 
     return total_area;
 }
 
 vector<Vector3f> Mesh::boundary_sample(int samples_per_unit_area) {
-
     // samples is based on the total surface area
-    int num_samples = static_cast<int>(total_surface_area * samples_per_unit_area);
+    int num_samples = static_cast<int>(m_surface_area * samples_per_unit_area);
 
-     vector<Vector3f> samples;
-     samples.reserve(num_samples);
+    vector<Vector3f> samples;
+    samples.reserve(num_samples);
 
-    // with the number of samples, sample a random triangle based on its area and sample a point on it
+    // with the number of samples, sample a random triangle based on its area and sample a point on
+    // it
     for (int i = 0; i < num_samples; ++i) {
-
-
-
     }
 
     return samples;

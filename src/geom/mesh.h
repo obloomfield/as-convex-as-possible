@@ -1,48 +1,33 @@
 #pragma once
 
 #include <array>
-#include <vector>
+#include <sstream>
+#include <string_view>
 #include <unordered_map>
+#include <vector>
 
 #include "Eigen/Dense"
 #include "btConvexHull/btConvexHullComputer.h"
-#include "convex-hull/convex-hull.h"
 #include "graphics/shape.h"
-#include "quickhull/QuickHull.hpp"
 #include "plane.h"
-
+#include "quickhull/QuickHull.hpp"
 
 using namespace std;
 using namespace Eigen;
 
 class Mesh {
- private:
-    vector<Vector3f> m_verts;
-    vector<Vector3i> m_triangles;
-
-    // for Monte-Carlo Tree Search
-    array<double, 6> m_bbox;
-    // for Eigenvalue computations
-    array<double, 3> m_barycenter;
-    // for optional PCA
-    array<array<double, 3>, 3> m_rot;
-
-    // surface area, calculated during constructor
-    unordered_map<int, float> tri_to_area;
-    float total_surface_area;
-
-
-
  public:
+    // Default constructor.
     Mesh() = default;
 
-    // upon construction:
-    // - calculate triangle areas and total surface area
+    // Constructs a mesh from a list of vertices and triangles. Initializes total surface area.
     Mesh(vector<Vector3f> verts, vector<Vector3i> tris) : m_verts(verts), m_triangles(tris) {
-        total_surface_area = calc_triangle_areas();
+        m_surface_area = compute_tri_areas();
     }
+
+    // Constructs a Mesh from a Shape object. Initializes total surface area.
     Mesh(Shape m_shape) : m_verts(m_shape.getVertices()), m_triangles(m_shape.getFaces()) {
-        total_surface_area = calc_triangle_areas();
+        m_surface_area = compute_tri_areas();
     }
 
     // Computes the volume of a mesh.
@@ -54,8 +39,8 @@ class Mesh {
 
     std::vector<Mesh> merge(const std::vector<Mesh>& Q);
 
-    // -------- used for concavity metric -------
-    float calc_triangle_areas();
+    // === Concavity Metric computations.
+    float compute_tri_areas();
     vector<Vector3f> boundary_sample(int samples_per_unit_area);
     Vector3f random_barycentric_coord(Vector3f& p1, Vector3f& p2, Vector3f& p3);
 
@@ -63,4 +48,20 @@ class Mesh {
 
     //    std::pair<Mesh, Mesh> clip(const Plane& p);
     std::vector<Mesh> cut_plane(Plane& p);
+
+ private:
+    // Vertices/triangles information.
+    vector<Vector3f> m_verts;
+    vector<Vector3i> m_triangles;
+
+    // for Monte-Carlo Tree Search
+    array<double, 6> m_bbox;
+    // for Eigenvalue computations
+    array<double, 3> m_barycenter;
+    // for optional PCA
+    array<array<double, 3>, 3> m_rot;
+
+    // surface area, calculated on construction.
+    unordered_map<int, float> m_tri_areas;
+    float m_surface_area;
 };
