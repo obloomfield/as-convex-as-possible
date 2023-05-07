@@ -7,10 +7,12 @@
 #include <vector>
 
 #include "Eigen/Dense"
+
 #include "btConvexHull/btConvexHullComputer.h"
 #include "graphics/shape.h"
 #include "plane.h"
 #include "quickhull/QuickHull.hpp"
+#include "../utils/rng.h"
 
 class Plane;
 
@@ -64,10 +66,7 @@ public:
   pair<vector<Vector3d>, vector<int>>
   sample_point_set(int resolution = 2000) const;
 
-  float compute_tri_areas(); // TODO: should probably be private
 
-  vector<Vector3f> boundary_sample(int samples_per_unit_area);
-  Vector3f random_barycentric_coord(Vector3f &p1, Vector3f &p2, Vector3f &p3);
 
   vector<Mesh> cut_plane(Plane &p);
   vector<Mesh> cut_plane(quickhull::Plane<double> &p);
@@ -88,4 +87,11 @@ private:
   // surface area, calculated on construction.
   unordered_map<int, float> m_tri_areas;
   float m_surface_area;
+
+  // Concavity Metric private members
+
+  vector<Vector3d> boundary_sample(int samples_per_unit_area);
+  static Vector3d random_barycentric_coord(Vector3f &p1, Vector3f &p2, Vector3f &p3);
+
+  float compute_tri_areas(); // TODO: should probably be private
 };

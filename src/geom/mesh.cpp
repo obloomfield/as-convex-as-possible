@@ -126,15 +126,6 @@ Mesh Mesh::computeVCH() const {
     return new_mesh;
 }
 
-pair<vector<Vector3d>, vector<int>> Mesh::sample_point_set(int resolution) const {
-    // TODO: implement (extract samples, and get their corresponding triangles)
-    return {{}, {}};
-}
-
-std::vector<Mesh> Mesh::merge(const std::vector<Mesh>& Q) {
-    // TODO: implement
-    return {};
-}
 
 vector<Mesh> Mesh::cut_plane(quickhull::Plane<double>& p) {
     Plane bound_plane = Plane(p,*this);
@@ -338,19 +329,49 @@ array<double, 6> Mesh::compute_bounding_box() {
             maxCoords.x(), maxCoords.y(), maxCoords.z()};
 }
 
-vector<Vector3f> Mesh::boundary_sample(int samples_per_unit_area) {
+
+Vector3d Mesh::random_barycentric_coord(Vector3f &p1, Vector3f &p2, Vector3f &p3) {
+
+    float w1 = rand_f();
+    float w2 = rand_f();
+
+    if (w1 + w2 >= 1.f) {
+        w1 = 1.f - w1;
+        w2 = 1.f - w2;
+    }
+
+    return (p1 * w1) + (p2 * w2) + (p3 * (1.f - (w1 + w2)));
+}
+
+vector<Vector3d> Mesh::boundary_sample(int samples_per_unit_area) {
     // samples is based on the total surface area
     int num_samples = static_cast<int>(m_surface_area * samples_per_unit_area);
 
-    vector<Vector3f> samples;
+    vector<Vector3d> samples;
     samples.reserve(num_samples);
 
     // with the number of samples, sample a random triangle based on its area and sample a point on
     // it
     for (int i = 0; i < num_samples; ++i) {
+
+
+
     }
 
     return samples;
 }
 
+
+
+
+pair<vector<Vector3d>, vector<int>> Mesh::sample_point_set(int resolution) const {
+    // TODO: implement (extract samples, and get their corresponding triangles)
+
+    return {{}, {}};
+}
+
+std::vector<Mesh> Mesh::merge(const std::vector<Mesh>& Q) {
+    // TODO: implement
+    return {};
+}
 
