@@ -28,6 +28,11 @@ double Mesh::volume() const {
     return abs(volume);
 }
 
+Mesh Mesh::computeBoundary() const {
+    // TODO: implement (probably could just port FEM code)
+    return {};
+}
+
 Mesh Mesh::computeCH() const {
     bool success = true;
 
@@ -103,6 +108,11 @@ Mesh Mesh::computeVCH() const {
 
     Mesh new_mesh(new_verts, new_tris);
     return new_mesh;
+}
+
+pair<vector<Vector3d>, vector<int>> Mesh::sample_point_set(int resolution) const {
+    // TODO: implement (extract samples, and get their corresponding triangles)
+    return {{}, {}};
 }
 
 std::vector<Mesh> Mesh::merge(const std::vector<Mesh>& Q) {
