@@ -61,7 +61,7 @@ double ConcavityMetric::hausdorff_distance(const Mesh& A, const Mesh& B) {
     constexpr int DIM = 3, MAX_LEAF = 10;
     typedef KDTreeVectorOfVectorsAdaptor<vector<Vector3d>, double, DIM> VecKDTree;
 
-    // Sample points from A and B, and get their corresponding triangles TODO: actually implement
+    // Sample points from A and B, and get their corresponding triangles
     auto [A_samples, A_sample_tris] = A.sample_point_set();
     auto [B_samples, B_sample_tris] = B.sample_point_set();
 
@@ -107,9 +107,10 @@ double ConcavityMetric::hausdorff_distance(const Mesh& A, const Mesh& B) {
         }
 
         // If shortest distance to triangle is too large, just get the shortest dist from the search
-        // TODO: why do they do this
-        if (shortest > 10.) shortest = sqrt(out_dists_sqrd[0]);
-
+        if (shortest > 10.) {
+            cout << "here\n";
+            shortest = sqrt(out_dists_sqrd[0]);
+        }
         return shortest;
     };
 
@@ -130,31 +131,3 @@ double ConcavityMetric::hausdorff_distance(const Mesh& A, const Mesh& B) {
 
     return h;
 }
-
-// THIS IS WRONG
-//// implements reservoir sampling algorithm -- IDK IF THIS WORKS LOL
-// std::vector<int> ConcavityMetric::sample(int orig_len, int samples) {
-
-//    std::vector<int> reservoir(samples);
-//    int i, j;
-
-//    // TODO: move these declaration to be declared once for efficiency
-//    std::random_device rd;
-//    std::mt19937 gen(rd());
-//    std::uniform_real_distribution<double> dist(0.0, 1.0);
-
-//    // Fill the reservoir array with the first k elements from the stream.
-//    for (i = 0; i < samples; i++) {
-//        reservoir[i] = i;
-//    }
-
-//    // Iterate over the remaining elements and decide whether to include them in the reservoir.
-//    for (i = samples; i < orig_len; i++) {
-//        j = floor(dist(gen) * i);
-//        if (j < samples) {
-//            reservoir[j] = i;
-//        }
-//    }
-
-//    return reservoir;
-//}

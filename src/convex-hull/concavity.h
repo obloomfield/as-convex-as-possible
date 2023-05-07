@@ -2,6 +2,7 @@
 
 #include <Eigen/Dense>
 #include <array>
+#include <queue>
 #include <random>
 #include <vector>
 
