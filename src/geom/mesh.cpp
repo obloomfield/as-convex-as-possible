@@ -19,6 +19,22 @@ inline double signed_tri_volume(const Vector3f& p1, const Vector3f& p2, const Ve
     return p1.dot(p2.cross(p3)) / 6.;
 }
 
+vector<Vector3f> float_to_vec3f(const vector<float>& float_vec) {
+    vector<Vector3f> vec3d_vec;
+    for (int i = 0; i < float_vec.size(); i += 3) {
+        vec3d_vec.emplace_back(float_vec[i], float_vec[i+1], float_vec[i+2]);
+    }
+    return vec3d_vec;
+}
+
+vector<Vector3i> uint_to_vec3i(const vector<uint32_t>& uint_vec) {
+    vector<Vector3i> vec3i_vec;
+    for (int i = 0; i < uint_vec.size(); i += 3) {
+        vec3i_vec.emplace_back(uint_vec[i], uint_vec[i+1], uint_vec[i+2]);
+    }
+    return vec3i_vec;
+}
+
 double Mesh::volume() const {
     double volume = 0;
     for (auto const& tri : this->m_triangles) {
@@ -120,6 +136,11 @@ std::vector<Mesh> Mesh::merge(const std::vector<Mesh>& Q) {
     return {};
 }
 
+vector<Mesh> Mesh::cut_plane(quickhull::Plane<double>& p) {
+    Plane bound_plane = Plane(p,*this);
+    return cut_plane(bound_plane);
+}
+
 std::vector<Mesh> Mesh::cut_plane(Plane& p) {
     auto [p0, p1, p2, p3] = p.bounds();
 
@@ -198,7 +219,8 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
 
     // 5. query the data of each connected component from MCUT
     // -------------------------------------------------------
-
+    std::vector<Mesh> out;
+    assert((int)connComps.size() == 2);
     for (int i = 0; i < (int)connComps.size(); ++i) {
         McConnectedComponent connComp = connComps[i];  // connected compoenent id
 
@@ -245,9 +267,14 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
 
         // save to mesh file (.obj)
         // ------------------------
+        // TODO: remove
         writeOBJ(fname.str(), (float*)f.data(), (uint32_t)vertices.size() / 3,
                  (uint32_t*)faceIndices.data(), (uint32_t*)faceSizes.data(),
                  (uint32_t)faceSizes.size());
+
+        vector<Vector3f> verts = float_to_vec3f(vertices);
+        vector<Vector3i> faces = uint_to_vec3i(faceIndices);
+        out.push_back(Mesh(verts,faces));
     }
 
     // 6. free connected component data
@@ -263,7 +290,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
     ASSERT(err == MC_NO_ERROR);
 
     // TODO: remake Mesh objects for two connected components
-    std::vector<Mesh> out;
+
     return out;
 }
 
@@ -287,6 +314,30 @@ float Mesh::compute_tri_areas() {
     return total_area;
 }
 
+array<double, 6> Mesh::compute_bounding_box() {
+    if (m_verts.empty()) {
+            return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        }
+
+    // Initialize min and max coordinates to the first vertex
+    Vector3f minCoords = m_verts[0];
+    Vector3f maxCoords = m_verts[0];
+
+    // Iterate over all vertices to update min and max coordinates
+    for (const auto& v : m_verts) {
+        minCoords.x() = std::min(minCoords.x(), v.x());
+        minCoords.y() = std::min(minCoords.y(), v.y());
+        minCoords.z() = std::min(minCoords.z(), v.z());
+
+        maxCoords.x() = std::max(maxCoords.x(), v.x());
+        maxCoords.y() = std::max(maxCoords.y(), v.y());
+        maxCoords.z() = std::max(maxCoords.z(), v.z());
+    }
+
+    return {minCoords.x(), minCoords.y(), minCoords.z(),
+            maxCoords.x(), maxCoords.y(), maxCoords.z()};
+}
+
 vector<Vector3f> Mesh::boundary_sample(int samples_per_unit_area) {
     // samples is based on the total surface area
     int num_samples = static_cast<int>(m_surface_area * samples_per_unit_area);
@@ -301,3 +352,5 @@ vector<Vector3f> Mesh::boundary_sample(int samples_per_unit_area) {
 
     return samples;
 }
+
+

@@ -1,11 +1,11 @@
-#ifndef MCTS_H
-#define MCTS_H
+#pragma once
 
+#include "geom/mesh.h"
 
 class MCTS
 {
 public:
     MCTS();
-};
 
-#endif // MCTS_H
+    static quickhull::Plane<double> cuttingPlane(Mesh cur_mesh);
+};
