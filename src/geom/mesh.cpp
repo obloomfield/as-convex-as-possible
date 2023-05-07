@@ -127,6 +127,8 @@ Mesh Mesh::computeVCH() const {
 }
 
 
+
+
 vector<Mesh> Mesh::cut_plane(quickhull::Plane<double>& p) {
     Plane bound_plane = Plane(p,*this);
     return cut_plane(bound_plane);
@@ -288,6 +290,8 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
 // go through each triangle and calculate area
 float Mesh::compute_tri_areas() {
     float total_area = 0.f;
+    m_tri_areas.reserve(m_triangles.size());
+    m_cdf.reserve(m_triangles.size());
 
     for (int i = 0; i < m_triangles.size(); ++i) {
         auto& t = m_triangles[i];
@@ -299,10 +303,32 @@ float Mesh::compute_tri_areas() {
         // area of a triangle is two of its vectors crossed / 2
         auto tri_area = (v2 - v1).cross(v3 - v1).norm() / 2.f;
         total_area += tri_area;
+        m_cdf[i] = total_area;
         m_tri_areas[i] = tri_area;
     }
 
     return total_area;
+}
+
+Vector3f Mesh::sampleTrianglePoint() {
+    float random_area = rand_f()*compute_tri_areas();
+    auto it = std::lower_bound(m_cdf.begin(), m_cdf.end(), random_area);
+
+    size_t index = std::distance(m_cdf.begin(), it); //index of triangle sampled
+    float sampled_area = m_tri_areas[index];
+
+    float random1 = rand_f();
+    float random2 = rand_f();
+    if (random1 + random2 > 1.0f) {
+        random1 = 1.0f - random1;
+        random2 = 1.0f - random2;
+    }
+    Vector3f ba = m_verts[1]-m_verts[0];
+    Vector3f ca = m_verts[2]-m_verts[0];
+    Vector3f sampled_point = m_verts[0] + random1*ba + random2*ca;
+
+    return sampled_point;
+
 }
 
 array<double, 6> Mesh::compute_bounding_box() {

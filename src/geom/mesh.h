@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
+
 #include "Eigen/Dense"
 
 #include "btConvexHull/btConvexHullComputer.h"
@@ -13,6 +14,7 @@
 #include "plane.h"
 #include "quickhull/QuickHull.hpp"
 #include "../utils/rng.h"
+
 
 class Plane;
 
@@ -43,6 +45,7 @@ public:
     m_bbox = compute_bounding_box();
   }
 
+
   // Computes the boundary mesh of a mesh. TODO: check if this is actually
   // necessary? also could just port FEM code I think
   Mesh computeBoundary() const;
@@ -68,13 +71,18 @@ public:
 
 
 
+
   vector<Mesh> cut_plane(Plane &p);
   vector<Mesh> cut_plane(quickhull::Plane<double> &p);
 
   array<double, 6> bounding_box() const { return m_bbox; };
   vector<Vector3f> vertices() const { return m_verts; };
 
+  std::vector<float> computeCDF() const; //computes the CDF of the areas of all triangles in the Mesh
+
+
 private:
+
   // for Monte-Carlo Tree Search
   array<double, 6> m_bbox;
   array<double, 6> compute_bounding_box();
@@ -85,7 +93,10 @@ private:
   array<array<double, 3>, 3> m_rot;
 
   // surface area, calculated on construction.
-  unordered_map<int, float> m_tri_areas;
+  Vector3f sampleTrianglePoint();
+
+  vector<float> m_tri_areas;
+  vector<float> m_cdf;
   float m_surface_area;
 
   // Concavity Metric private members
