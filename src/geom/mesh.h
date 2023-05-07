@@ -66,8 +66,6 @@ public:
   pair<vector<Vector3d>, vector<int>>
   sample_point_set(int resolution = 2000) const;
 
-
-
   vector<Mesh> cut_plane(Plane &p);
   vector<Mesh> cut_plane(quickhull::Plane<double> &p);
 
@@ -90,8 +88,6 @@ private:
 
   // Concavity Metric private members
 
-  vector<Vector3d> boundary_sample(int samples_per_unit_area);
   static Vector3d random_barycentric_coord(Vector3f &p1, Vector3f &p2, Vector3f &p3);
-
-  float compute_tri_areas(); // TODO: should probably be private
+  float compute_tri_areas(); // should probably be private
 };
