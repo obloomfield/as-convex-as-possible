@@ -22,7 +22,7 @@ inline double signed_tri_volume(const Vector3f& p1, const Vector3f& p2, const Ve
 vector<Vector3f> float_to_vec3f(const vector<float>& float_vec) {
     vector<Vector3f> vec3d_vec;
     for (int i = 0; i < float_vec.size(); i += 3) {
-        vec3d_vec.emplace_back(float_vec[i], float_vec[i+1], float_vec[i+2]);
+        vec3d_vec.emplace_back(float_vec[i], float_vec[i + 1], float_vec[i + 2]);
     }
     return vec3d_vec;
 }
@@ -30,7 +30,7 @@ vector<Vector3f> float_to_vec3f(const vector<float>& float_vec) {
 vector<Vector3i> uint_to_vec3i(const vector<uint32_t>& uint_vec) {
     vector<Vector3i> vec3i_vec;
     for (int i = 0; i < uint_vec.size(); i += 3) {
-        vec3i_vec.emplace_back(uint_vec[i], uint_vec[i+1], uint_vec[i+2]);
+        vec3i_vec.emplace_back(uint_vec[i], uint_vec[i + 1], uint_vec[i + 2]);
     }
     return vec3i_vec;
 }
@@ -42,11 +42,6 @@ double Mesh::volume() const {
         volume += signed_tri_volume(this->m_verts[i0], this->m_verts[i1], this->m_verts[i2]);
     }
     return abs(volume);
-}
-
-Mesh Mesh::computeBoundary() const {
-    // TODO: implement (probably could just port FEM code)
-    return {};
 }
 
 Mesh Mesh::computeCH() const {
@@ -126,11 +121,8 @@ Mesh Mesh::computeVCH() const {
     return new_mesh;
 }
 
-
-
-
 vector<Mesh> Mesh::cut_plane(quickhull::Plane<double>& p) {
-    Plane bound_plane = Plane(p,*this);
+    Plane bound_plane = Plane(p, *this);
     return cut_plane(bound_plane);
 }
 
@@ -267,7 +259,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
 
         vector<Vector3f> verts = float_to_vec3f(vertices);
         vector<Vector3i> faces = uint_to_vec3i(faceIndices);
-        out.push_back(Mesh(verts,faces));
+        out.push_back(Mesh(verts, faces));
     }
 
     // 6. free connected component data
@@ -312,8 +304,8 @@ float Mesh::compute_tri_areas() {
 
 array<double, 6> Mesh::compute_bounding_box() {
     if (m_verts.empty()) {
-            return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-        }
+        return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    }
 
     // Initialize min and max coordinates to the first vertex
     Vector3f minCoords = m_verts[0];
@@ -334,9 +326,8 @@ array<double, 6> Mesh::compute_bounding_box() {
             maxCoords.x(), maxCoords.y(), maxCoords.z()};
 }
 
-
-Vector3d Mesh::random_barycentric_coord(const Vector3f &p1, const Vector3f &p2, const Vector3f &p3) {
-
+Vector3d Mesh::random_barycentric_coord(const Vector3f& p1, const Vector3f& p2,
+                                        const Vector3f& p3) {
     float w1 = rand_f();
     float w2 = rand_f();
 
@@ -363,12 +354,11 @@ pair<vector<Vector3d>, vector<int>> Mesh::sample_point_set(int resolution) const
     // with the number of samples, sample a random triangle based on its area and sample a point on
     // it
     for (int i = 0; i < num_samples; ++i) {
-
         // draw a random number and scale it by the total surface area
         float random_area = rand_f() * m_surface_area;
         // next, find the index the draw corresponds to
         auto it = std::lower_bound(m_cdf.begin(), m_cdf.end(), random_area);
-        size_t index = std::distance(m_cdf.begin(), it); // index of triangle sampled
+        size_t index = std::distance(m_cdf.begin(), it);  // index of triangle sampled
 
         // if lower_bound returns end, set it to be last index
         if (index == m_triangles.size()) index = m_triangles.size() - 1;
@@ -390,4 +380,3 @@ std::vector<Mesh> Mesh::merge(const std::vector<Mesh>& Q) {
     // TODO: implement
     return {};
 }
-

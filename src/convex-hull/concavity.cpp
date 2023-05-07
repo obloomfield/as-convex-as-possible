@@ -31,7 +31,7 @@ double ConcavityMetric::R_v(const Mesh& S) {
 }
 
 double ConcavityMetric::H_b(const Mesh& S) {
-    // Get the boundary of the mesh, and its CH
+    // Compute convex hull of the mesh; already surface mesh, so don't need boundary logic
     auto CH_S_b = S.computeCH();
 
     // Compute Hausdorff distance between S_b and CH(S_b)
