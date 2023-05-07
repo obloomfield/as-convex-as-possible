@@ -101,8 +101,6 @@ private:
 
   // Concavity Metric private members
 
-  vector<Vector3d> boundary_sample(int samples_per_unit_area);
   static Vector3d random_barycentric_coord(Vector3f &p1, Vector3f &p2, Vector3f &p3);
-
-  float compute_tri_areas(); // TODO: should probably be private
+  float compute_tri_areas(); // should probably be private
 };

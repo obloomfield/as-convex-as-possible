@@ -31,12 +31,15 @@ double ConcavityMetric::R_v(const Mesh& S) {
 }
 
 double ConcavityMetric::H_b(const Mesh& S) {
-    // Get the boundary of the mesh, and its CH TODO: need to implement
-    auto S_b = S.computeBoundary();
-    auto CH_S_b = S_b.computeCH();
+
+    // TODO: I THINK THE BOUNDARY OF THE MESH IS JUST THE SURFACE MESH ITSELF
+
+    // Get the boundary of the mesh, and its CH
+//    auto S_b = S.computeBoundary();
+    auto CH_S_b = S.computeCH();
 
     // Compute Hausdorff distance between S_b and CH(S_b)
-    double d = hausdorff_distance(S_b, CH_S_b);
+    double d = hausdorff_distance(S, CH_S_b);
     return d;
 }
 
