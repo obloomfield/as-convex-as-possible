@@ -38,7 +38,9 @@ void ACAP::init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax) {
     Mesh mesh(m_shape);  // our custom datatype
     Plane p(Vector3d(-1.2, 1.6, 1.5), Vector3d(1.4, -1.3, 1.5), Vector3d(-1.2, 1.6, -1.005929),
             Vector3d(1.4, -1.3, -1.005929));
-    mesh.cut_plane(p);
+    vector<Mesh> fragments = mesh.cut_plane(p);
+
+    assert(fragments.size() == 2);
 
     return;
 
@@ -69,15 +71,14 @@ vector<Mesh> ACAP::ACD(Mesh mesh) {
 
             if (cost > COST_THRESHOLD) {
                 // TODO: MONTE CARLO TREE SEARCH
-                //                quickhull::Plane p = MCTS::cuttingPlane(cur_mesh);
+                quickhull::Plane p = MCTS::cuttingPlane(cur_mesh);
 
                 // TODO: Clip by plane (refine and cut)
-                //                auto [cL,cR] = mesh.clip(p);
+                vector<Mesh> fragments = mesh.cut_plane(p);
+                Mesh cL = fragments[0], cR = fragments[1];
 
-                //                if (cL.m_verts.size() > 0) new_Q.push_back(cL);
-                //                if (cR.m_verts.size() > 0) new_Q.push_back(cR);
-
-                // TODO: ...
+                if (cL.vertices().size() > 0) new_Q.push_back(cL);
+                if (cR.vertices().size() > 0) new_Q.push_back(cR);
             } else {  // put back!
                 D.push_back(convex);
                 mesh_parts.push_back(cur_mesh);

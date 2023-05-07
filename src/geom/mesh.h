@@ -6,11 +6,13 @@
 #include <unordered_map>
 #include <vector>
 
+#include "plane.h"
 #include "Eigen/Dense"
 #include "btConvexHull/btConvexHullComputer.h"
 #include "graphics/shape.h"
-#include "plane.h"
 #include "quickhull/QuickHull.hpp"
+
+class Plane;
 
 using namespace std;
 using namespace Eigen;
@@ -23,11 +25,13 @@ class Mesh {
     // Constructs a mesh from a list of vertices and triangles. Initializes total surface area.
     Mesh(vector<Vector3f> verts, vector<Vector3i> tris) : m_verts(verts), m_triangles(tris) {
         m_surface_area = compute_tri_areas();
+        m_bbox = compute_bounding_box();
     }
 
     // Constructs a Mesh from a Shape object. Initializes total surface area.
     Mesh(Shape m_shape) : m_verts(m_shape.getVertices()), m_triangles(m_shape.getFaces()) {
         m_surface_area = compute_tri_areas();
+        m_bbox = compute_bounding_box();
     }
 
     // Computes the volume of a mesh.
@@ -46,8 +50,12 @@ class Mesh {
 
     float calc_volume();
 
-    //    std::pair<Mesh, Mesh> clip(const Plane& p);
-    std::vector<Mesh> cut_plane(Plane& p);
+    vector<Mesh> cut_plane(Plane& p);
+    vector<Mesh> cut_plane(quickhull::Plane<double>& p);
+
+    array<double, 6> bounding_box() const { return m_bbox; };
+    vector<Vector3f> vertices() const { return m_verts; };
+
 
  private:
     // Vertices/triangles information.
@@ -56,6 +64,8 @@ class Mesh {
 
     // for Monte-Carlo Tree Search
     array<double, 6> m_bbox;
+    array<double, 6> compute_bounding_box();
+
     // for Eigenvalue computations
     array<double, 3> m_barycenter;
     // for optional PCA
