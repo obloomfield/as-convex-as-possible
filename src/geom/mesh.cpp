@@ -310,27 +310,6 @@ float Mesh::compute_tri_areas() {
     return total_area;
 }
 
-Vector3f Mesh::sampleTrianglePoint() {
-    float random_area = rand_f()*compute_tri_areas();
-    auto it = std::lower_bound(m_cdf.begin(), m_cdf.end(), random_area);
-
-    size_t index = std::distance(m_cdf.begin(), it); //index of triangle sampled
-    float sampled_area = m_tri_areas[index];
-
-    float random1 = rand_f();
-    float random2 = rand_f();
-    if (random1 + random2 > 1.0f) {
-        random1 = 1.0f - random1;
-        random2 = 1.0f - random2;
-    }
-    Vector3f ba = m_verts[1]-m_verts[0];
-    Vector3f ca = m_verts[2]-m_verts[0];
-    Vector3f sampled_point = m_verts[0] + random1*ba + random2*ca;
-
-    return sampled_point;
-
-}
-
 array<double, 6> Mesh::compute_bounding_box() {
     if (m_verts.empty()) {
             return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
@@ -356,7 +335,7 @@ array<double, 6> Mesh::compute_bounding_box() {
 }
 
 
-Vector3d Mesh::random_barycentric_coord(Vector3f &p1, Vector3f &p2, Vector3f &p3) {
+Vector3d Mesh::random_barycentric_coord(const Vector3f &p1, const Vector3f &p2, const Vector3f &p3) {
 
     float w1 = rand_f();
     float w2 = rand_f();
@@ -369,31 +348,42 @@ Vector3d Mesh::random_barycentric_coord(Vector3f &p1, Vector3f &p2, Vector3f &p3
     return (p1 * w1) + (p2 * w2) + (p3 * (1.f - (w1 + w2)));
 }
 
-vector<Vector3d> Mesh::boundary_sample(int samples_per_unit_area) {
-    // samples is based on the total surface area
-    int num_samples = static_cast<int>(m_surface_area * samples_per_unit_area);
+pair<vector<Vector3d>, vector<int>> Mesh::sample_point_set(int resolution) const {
+    // TODO: implement (extract samples, and get their corresponding triangles)
 
-    vector<Vector3d> samples;
-    samples.reserve(num_samples);
+    // samples is based on the total surface area
+    int num_samples = static_cast<int>(m_surface_area * resolution);
+
+    // initialize sample vectors
+    vector<Vector3d> point_samples;
+    vector<int> tri_ind_samples;
+    point_samples.reserve(num_samples);
+    tri_ind_samples.reserve(num_samples);
 
     // with the number of samples, sample a random triangle based on its area and sample a point on
     // it
     for (int i = 0; i < num_samples; ++i) {
 
+        // draw a random number and scale it by the total surface area
+        float random_area = rand_f() * m_surface_area;
+        // next, find the index the draw corresponds to
+        auto it = std::lower_bound(m_cdf.begin(), m_cdf.end(), random_area);
+        size_t index = std::distance(m_cdf.begin(), it); // index of triangle sampled
 
+        // if lower_bound returns end, set it to be last index
+        if (index == m_triangles.size()) index = m_triangles.size() - 1;
 
+        // add triangle index to sample
+        tri_ind_samples[i] = index;
+
+        // get the triangle
+        Vector3i tri = m_triangles[index];
+
+        // sample barycentric coordinate of tri and add it to the samples
+        point_samples[i] = random_barycentric_coord(m_verts[0], m_verts[1], m_verts[2]);
     }
 
-    return samples;
-}
-
-
-
-
-pair<vector<Vector3d>, vector<int>> Mesh::sample_point_set(int resolution) const {
-    // TODO: implement (extract samples, and get their corresponding triangles)
-
-    return {{}, {}};
+    return {point_samples, tri_ind_samples};
 }
 
 std::vector<Mesh> Mesh::merge(const std::vector<Mesh>& Q) {

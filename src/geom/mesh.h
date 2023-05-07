@@ -69,9 +69,6 @@ public:
   pair<vector<Vector3d>, vector<int>>
   sample_point_set(int resolution = 2000) const;
 
-
-
-
   vector<Mesh> cut_plane(Plane &p);
   vector<Mesh> cut_plane(quickhull::Plane<double> &p);
 
@@ -93,14 +90,12 @@ private:
   array<array<double, 3>, 3> m_rot;
 
   // surface area, calculated on construction.
-  Vector3f sampleTrianglePoint();
-
   vector<float> m_tri_areas;
   vector<float> m_cdf;
   float m_surface_area;
 
   // Concavity Metric private members
 
-  static Vector3d random_barycentric_coord(Vector3f &p1, Vector3f &p2, Vector3f &p3);
+  static Vector3d random_barycentric_coord(const Vector3f &p1, const Vector3f &p2, const Vector3f &p3);
   float compute_tri_areas(); // should probably be private
 };
