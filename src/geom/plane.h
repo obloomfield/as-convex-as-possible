@@ -1,24 +1,23 @@
 #pragma once
 
-#include "Eigen/Dense"
-#include "plane.h"
-#include "mesh.h"
-#include "quickhull/Structs/Plane.hpp"
 #include <vector>
+
+#include "Eigen/Dense"
+#include "mesh.h"
+#include "plane.h"
+#include "quickhull/Structs/Plane.hpp"
 
 class Mesh;
 
-using namespace Eigen;
-
 class Plane {
-private:
-    Vector3d p0;
-    Vector3d p1;
-    Vector3d p2;
-    Vector3d p3;
-public:
+ private:
+    Eigen::Vector3d p0;
+    Eigen::Vector3d p1;
+    Eigen::Vector3d p2;
+    Eigen::Vector3d p3;
 
-    Plane(Vector3d a, Vector3d b, Vector3d c, Vector3d d) {
+ public:
+    Plane(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c, Eigen::Vector3d d) {
         p0 = a, p1 = b, p2 = c, p3 = d;
         // ensure that all points make a plane
         double EPSILON = 1e-9;
@@ -29,7 +28,7 @@ public:
 
     Plane(const quickhull::Plane<double>& p, const Mesh& m);
 
-    std::tuple<Vector3d,Vector3d,Vector3d,Vector3d> bounds() {
-        return std::make_tuple(p0,p1,p2,p3);
+    std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> bounds() {
+        return std::make_tuple(p0, p1, p2, p3);
     }
 };

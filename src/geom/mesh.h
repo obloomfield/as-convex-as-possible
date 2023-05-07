@@ -6,30 +6,28 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../utils/rng.h"
 #include "Eigen/Dense"
 #include "btConvexHull/btConvexHullComputer.h"
 #include "graphics/shape.h"
 #include "plane.h"
 #include "quickhull/QuickHull.hpp"
+#include "utils/rng.h"
 
 class Plane;
-
-using namespace std;
-using namespace Eigen;
 
 class Mesh {
  public:
     // Vertices/triangles information.
-    vector<Vector3f> m_verts;
-    vector<Vector3i> m_triangles;
+    std::vector<Eigen::Vector3f> m_verts;
+    std::vector<Eigen::Vector3i> m_triangles;
 
     // Default constructor.
     Mesh() = default;
 
     // Constructs a mesh from a list of vertices and triangles. Initializes total
     // surface area.
-    Mesh(vector<Vector3f> verts, vector<Vector3i> tris) : m_verts(verts), m_triangles(tris) {
+    Mesh(std::vector<Eigen::Vector3f> verts, std::vector<Eigen::Vector3i> tris)
+        : m_verts(verts), m_triangles(tris) {
         m_surface_area = compute_tri_areas();
         m_bbox = compute_bounding_box();
     }
@@ -56,33 +54,34 @@ class Mesh {
     // Samples a point set from the Mesh with the specified resolution (resolution
     // here indicates the number of samples per unit surface area; by default
     // 2000)
-    pair<vector<Vector3d>, vector<int>> sample_point_set(int resolution = 2000) const;
+    pair<vector<Eigen::Vector3d>, std::vector<int>> sample_point_set(int resolution = 2000) const;
 
-    vector<Mesh> cut_plane(Plane &p);
-    vector<Mesh> cut_plane(quickhull::Plane<double> &p);
+    std::vector<Mesh> cut_plane(Plane &p);
+    std::vector<Mesh> cut_plane(quickhull::Plane<double> &p);
 
-    array<double, 6> bounding_box() const { return m_bbox; };
-    vector<Vector3f> vertices() const { return m_verts; };
+    std::array<double, 6> bounding_box() const { return m_bbox; };
+    std::vector<Eigen::Vector3f> vertices() const { return m_verts; };
 
     // Concavity Metric private members
  private:
     // for Monte-Carlo Tree Search
-    array<double, 6> m_bbox;
-    array<double, 6> compute_bounding_box();
+    std::array<double, 6> m_bbox;
+    std::array<double, 6> compute_bounding_box();
 
     // for Eigenvalue computations
-    array<double, 3> m_barycenter;
+    std::array<double, 3> m_barycenter;
     // for optional PCA
-    array<array<double, 3>, 3> m_rot;
+    std::array<std::array<double, 3>, 3> m_rot;
 
     // surface area, calculated on construction.
-    vector<float> m_tri_areas;
-    vector<float> m_cdf;
+    std::vector<float> m_tri_areas;
+    std::vector<float> m_cdf;
     float m_surface_area;
 
     // Concavity Metric private members
 
-    static Vector3d random_barycentric_coord(const Vector3f &p1, const Vector3f &p2,
-                                             const Vector3f &p3);
+    static Eigen::Vector3d random_barycentric_coord(const Eigen::Vector3f &p1,
+                                                    const Eigen::Vector3f &p2,
+                                                    const Eigen::Vector3f &p3);
     float compute_tri_areas();  // should probably be private
 };
