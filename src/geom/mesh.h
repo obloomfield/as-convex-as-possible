@@ -9,7 +9,7 @@
 #include "Eigen/Dense"
 #include "btConvexHull/btConvexHullComputer.h"
 #include "graphics/shape.h"
-#include "plane.h"
+#include "shapes.h"
 #include "quickhull/QuickHull.hpp"
 #include "utils/rng.h"
 

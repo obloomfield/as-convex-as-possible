@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 
+#include "geom/shapes.h"
 #include "mcut/mcut.h"
 
 using namespace std;
@@ -20,22 +21,22 @@ inline bool same_dir(const Vector3d& a, const Vector3d& b) {
 }
 
 // Computes the distance between a point and a line segment (i.e. an edge).
-double dist_pt2seg(const Vector3d& pt, const array<Vector3d, 2>& line) {
+double dist_pt2seg(const Vector3d& pt, const Edge& edge) {
     // Compute direction vector of the line segment
-    auto d_vec = (line[1] - line[0]) / dist(line[0], line[1]);
+    auto d_vec = (edge[1] - edge[0]) / dist(edge[0], edge[1]);
 
     // Get vector from an endpoint to the point
-    auto v = pt - line[0];
+    auto v = pt - edge[0];
 
     // Compute dot product, then project pt onto the line
     auto t = v.dot(d_vec);
-    auto proj = line[0] + t * d_vec;
+    auto proj = edge[0] + t * d_vec;
 
     return dist(pt, proj);
 }
 
 // Computes the distance between a point and a triangle.
-double dist_pt2tri(const Vector3d& pt, const array<Vector3d, 3>& tri) {
+double dist_pt2tri(const Vector3d& pt, const Triangle& tri) {
     // Get triangle normal; this defines a plane
     // 		n.dot(p - p0) = 0
     // 	where n = triangle normal and p0 = anchor point.
@@ -72,7 +73,7 @@ double dist_pt2tri(const Vector3d& pt, const array<Vector3d, 3>& tri) {
     }
 }
 
-// Save verts/faces to an .obj filep
+// Save verts/faces to an .obj file
 void writeOBJ(const std::string& path, const float* ccVertices, const int ccVertexCount,
               const uint32_t* ccFaceIndices, const uint32_t* faceSizes,
               const uint32_t ccFaceCount) {
