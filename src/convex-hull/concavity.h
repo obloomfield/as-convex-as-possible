@@ -2,6 +2,7 @@
 
 #include <Eigen/Dense>
 #include <array>
+#include <map>
 #include <queue>
 #include <random>
 #include <vector>
@@ -38,6 +39,15 @@ class ConcavityMetric {
      * @return the concavity of the mesh
      */
     static double concavity(const Mesh& S);
+
+    /**
+     * @brief Sorts a list of concave edges by shortest distance to a convex hull CH, descending.
+     * @param CH the mesh to check distance of; assumed to be a convex hull.
+     * @param concave_edges the list of concave edges to check
+     * @return a deque of concave edges, sorted descending by shortest distance to the convex hull.
+     */
+    static std::deque<Edge> sort_concave_edges(const Mesh& CH,
+                                               const std::vector<Edge>& concave_edges);
 
  private:
     /**

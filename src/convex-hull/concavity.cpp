@@ -18,6 +18,37 @@ double ConcavityMetric::concavity(const Mesh& S) {
     return max(rv, hb);
 }
 
+deque<Edge> ConcavityMetric::sort_concave_edges(const Mesh& CH, const vector<Edge>& concave_edges) {
+    // Here, we iterate through each of the triangles of the convex hull CH, and compute the
+    // shortest distance between the edge and that triangle.
+    //
+    // A KDTree could be utilized here if there are sufficiently many concave edges, but here we
+    // assume len(concave_edges) << len(M.verts), so KDTree construction would be too expensive
+    // (O(nlogn) vs. O(kn), where k = len(concave_edges)).
+
+    // Map distances to edges; keeps in order for later
+    map<double, Edge> edge_dists;
+
+    // Find shortest distance from edge to the convex hull:
+    for (auto&& e : concave_edges) {
+        double shortest = DMAX;
+        // for each concave edge, check distance to each of the triangles in the convex hull
+        for (auto&& tri_i : CH.m_triangles) {
+            auto tri = CH.get_triangle(tri_i);
+            auto d = e.dist_to(tri);
+            if (d < shortest) shortest = d;
+        }
+        edge_dists[shortest] = e;
+    }
+
+    deque<Edge> res;
+    // the map should maintain min sorting here, so push each to the front
+    for (auto& [_, e] : edge_dists) {
+        res.push_front(e);
+    }
+    return res;
+}
+
 double ConcavityMetric::R_v(const Mesh& S) {
     // Get the convex hull of the mesh
     auto CH_S = S.computeCH();
