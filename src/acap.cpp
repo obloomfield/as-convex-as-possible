@@ -37,8 +37,8 @@ void ACAP::init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax) {
     }
 
     Mesh mesh(m_shape);  // our custom datatype
-    Plane p(Vector3d(-1.2, 1.6, 1.5), Vector3d(1.4, -1.3, 1.5), Vector3d(-1.2, 1.6, -1.005929),
-            Vector3d(1.4, -1.3, -1.005929));
+        Plane p(Vector3d(-1.2, 1.6, 1.5), Vector3d(1.4, -1.3, 1.5), Vector3d(-1.2, 1.6, -1.005929),
+                Vector3d(1.4, -1.3, -1.005929));
     vector<Mesh> fragments = mesh.cut_plane(p);
 
 //    assert(fragments.size() == 2);

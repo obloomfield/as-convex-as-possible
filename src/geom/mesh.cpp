@@ -14,42 +14,15 @@ using namespace Eigen;
 
 constexpr string_view OUT_DIR = "fragments/";
 
-inline double signed_tri_volume(const Vector3d& p1, const Vector3d& p2, const Vector3d& p3) {
+inline double signed_tri_volume(const Vector3f& p1, const Vector3f& p2, const Vector3f& p3) {
     // From here: https://stackoverflow.com/a/1568551
     return p1.dot(p2.cross(p3)) / 6.;
 }
 
-vector<Vector3f> float_to_vec3f(const vector<float>& float_vec) {
-    vector<Vector3f> vec3d_vec;
-    for (int i = 0; i < float_vec.size(); i += 3) {
-        vec3d_vec.emplace_back(float_vec[i], float_vec[i + 1], float_vec[i + 2]);
-    }
-    return vec3d_vec;
-}
-
-vector<Vector3d> float_to_vec3d(const vector<float>& float_vec) {
-    vector<Vector3d> vec3d_vec;
-    for (int i = 0; i < float_vec.size(); i += 3) {
-        vec3d_vec.emplace_back(float_vec[i], float_vec[i + 1], float_vec[i + 2]);
-    }
-    return vec3d_vec;
-}
-
-vector<Vector3i> uint_to_vec3i(const vector<uint32_t>& uint_vec) {
-    vector<Vector3i> vec3i_vec;
-    for (int i = 0; i < uint_vec.size(); i += 3) {
-        vec3i_vec.emplace_back(uint_vec[i], uint_vec[i + 1], uint_vec[i + 2]);
-    }
-    return vec3i_vec;
-}
-
-double Mesh::volume() const {
-    double volume = 0;
-    for (auto const& tri : this->m_triangles) {
-        int i0 = tri[0], i1 = tri[1], i2 = tri[2];
-        volume += signed_tri_volume(this->m_verts[i0], this->m_verts[i1], this->m_verts[i2]);
-    }
-    return abs(volume);
+array<Edge, 3> Mesh::get_triangle_edges(const Vector3i& tri) const {
+    auto t = this->get_triangle(tri);
+    return {Edge(t[0], t[1], tri[0], tri[1]), Edge(t[1], t[2], tri[1], tri[2]),
+            Edge(t[2], t[0], tri[2], tri[0])};
 }
 
 Mesh Mesh::computeCH() const {
@@ -129,8 +102,17 @@ Mesh Mesh::computeVCH() const {
     return new_mesh;
 }
 
+double Mesh::volume() const {
+    double volume = 0;
+    for (auto const& tri : this->m_triangles) {
+        int i0 = tri[0], i1 = tri[1], i2 = tri[2];
+        volume += signed_tri_volume(this->m_verts[i0], this->m_verts[i1], this->m_verts[i2]);
+    }
+    return abs(volume);
+}
+
 vector<Mesh> Mesh::cut_plane(quickhull::Plane<double>& p) {
-    Plane bound_plane = Plane(p, *this);
+    Plane bound_plane = Plane(p, this->bounding_box());
     return cut_plane(bound_plane);
 }
 
@@ -265,7 +247,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
                  (uint32_t*)faceIndices.data(), (uint32_t*)faceSizes.data(),
                  (uint32_t)faceSizes.size());
 
-        vector<Vector3d> verts = float_to_vec3d(vertices);
+        vector<Vector3d> verts = vec3f_to_vec3d(float_to_vec3f(vertices));
         vector<Vector3i> faces = uint_to_vec3i(faceIndices);
         out.push_back(Mesh(verts, faces));
     }
@@ -336,8 +318,6 @@ array<double, 6> Mesh::compute_bounding_box() {
 
 Vector3d Mesh::random_barycentric_coord(const Vector3d& p1, const Vector3d& p2,
                                         const Vector3d& p3) {
-
-
     float w1 = rand_f();
     float w2 = rand_f();
 
@@ -391,12 +371,12 @@ std::vector<Mesh> Mesh::merge(const std::vector<Mesh>& Q) {
     return {};
 }
 
-
 vector<Edge> Mesh::shared_edges(const Vector3i& tri1, const Vector3i& tri2) {
     vector<Edge> shared;
-    for (Edge e0 : triangleEdges(tri1)) {
-        for (Edge e1 : triangleEdges(tri2)) {
-            if (e0 == e1) shared.push_back(e0);
+    auto edges1 = this->get_triangle_edges(tri1), edges2 = this->get_triangle_edges(tri2);
+    for (auto&& e1 : edges1) {
+        for (auto&& e2 : edges2) {
+            if (e1 == e2) shared.push_back(e1);
         }
     }
     return shared;
@@ -422,13 +402,14 @@ vector<Edge> Mesh::concave_edges() {
     vector<Edge> concave_edges;
     for (const Vector3i& tri_1 : m_triangles) {
         for (const Vector3i& tri_2 : m_triangles) {
-            vector<Edge> shared = shared_edges(tri_1,tri_2);
-            if (shared.size() == 1 && angle_between_tris(tri_1,tri_2) < M_PI) {
+            vector<Edge> shared = shared_edges(tri_1, tri_2);
+            if (shared.size() == 1 && angle_between_tris(tri_1, tri_2) < M_PI) {
                 concave_edges.push_back(shared[0]);
             }
-//             make sure no double,etc. counting for edge
-//             we need to check the direction vector of the two points on the shared edge. normalized.
-//             ...
+            //             make sure no double,etc. counting for edge
+            //             we need to check the direction vector of the two points on the shared
+            //             edge. normalized.
+            //             ...
         }
     }
     return concave_edges;

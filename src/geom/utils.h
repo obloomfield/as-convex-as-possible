@@ -12,6 +12,34 @@
 using namespace std;
 using namespace Eigen;
 
+inline vector<Vector3d> vec3f_to_vec3d(const vector<Vector3f>& v) {
+    auto nv = v.size();
+    vector<Vector3d> res(nv);
+    for (auto i = 0; i < nv; i++) res[i] = v[i].cast<double>();
+    return res;
+}
+
+inline vector<Vector3f> float_to_vec3f(const vector<float>& float_vec) {
+    vector<Vector3f> vec3d_vec;
+    for (int i = 0; i < float_vec.size(); i += 3) {
+        vec3d_vec.emplace_back(float_vec[i], float_vec[i + 1], float_vec[i + 2]);
+    }
+    return vec3d_vec;
+}
+
+inline vector<Vector3i> uint_to_vec3i(const vector<uint32_t>& uint_vec) {
+    vector<Vector3i> vec3i_vec;
+    for (int i = 0; i < uint_vec.size(); i += 3) {
+        vec3i_vec.emplace_back(uint_vec[i], uint_vec[i + 1], uint_vec[i + 2]);
+    }
+    return vec3i_vec;
+}
+
+inline double signed_tri_volume(const Vector3d& p1, const Vector3d& p2, const Vector3d& p3) {
+    // From here: https://stackoverflow.com/a/1568551
+    return p1.dot(p2.cross(p3)) / 6.;
+}
+
 inline double dist(const Vector3d& a, const Vector3d& b) {
     return sqrt((a - b).dot(a - b));
 }
@@ -21,7 +49,7 @@ inline bool same_dir(const Vector3d& a, const Vector3d& b) {
 }
 
 // Computes the distance between a point and a line segment (i.e. an edge).
-double dist_pt2edge(const Vector3d& pt, const Edge& edge) {
+inline double dist_pt2edge(const Vector3d& pt, const Edge& edge) {
     // Compute direction vector of the line segment
     auto d_vec = (edge[1] - edge[0]) / dist(edge[0], edge[1]);
 
@@ -36,7 +64,7 @@ double dist_pt2edge(const Vector3d& pt, const Edge& edge) {
 }
 
 // Computes the distance between a point and a triangle.
-double dist_pt2tri(const Vector3d& pt, const Triangle& tri) {
+inline double dist_pt2tri(const Vector3d& pt, const Triangle& tri) {
     // Get triangle normal; this defines a plane
     // 		n.dot(p - p0) = 0
     // 	where n = triangle normal and p0 = anchor point.
@@ -67,16 +95,16 @@ double dist_pt2tri(const Vector3d& pt, const Triangle& tri) {
         return min(min(min(dist_pt2edge(pt, {tri[0], tri[1]}),   // Compute minimum of distance
                            dist_pt2edge(pt, {tri[1], tri[2]})),  // between pt and the 3 edges
                        dist_pt2edge(pt, {tri[2], tri[0]})),
-                   min(min(dist(pt, tri[0]),                    // Compute minimum of distance
-                           dist(pt, tri[1])),                   // between pt and the 3 points
+                   min(min(dist(pt, tri[0]),                     // Compute minimum of distance
+                           dist(pt, tri[1])),                    // between pt and the 3 points
                        dist(pt, tri[2])));
     }
 }
 
 // Save verts/faces to an .obj file
-void writeOBJ(const std::string& path, const float* ccVertices, const int ccVertexCount,
-              const uint32_t* ccFaceIndices, const uint32_t* faceSizes,
-              const uint32_t ccFaceCount) {
+inline void writeOBJ(const std::string& path, const float* ccVertices, const int ccVertexCount,
+                     const uint32_t* ccFaceIndices, const uint32_t* faceSizes,
+                     const uint32_t ccFaceCount) {
     printf("write file: %s\n", path.c_str());
 
     std::ofstream file(path);

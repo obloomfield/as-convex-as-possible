@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <map>
 #include <sstream>
 #include <string_view>
 #include <unordered_map>
@@ -11,6 +12,7 @@
 #include "graphics/shape.h"
 #include "quickhull/QuickHull.hpp"
 #include "shapes.h"
+#include "utils.h"
 #include "utils/rng.h"
 
 class Plane;
@@ -21,6 +23,9 @@ class Mesh {
     // Vertices/triangles information.
     std::vector<Eigen::Vector3d> m_verts;
     std::vector<Eigen::Vector3i> m_triangles;
+
+    // Map of Edge -> Triangles
+    std::map<Edge, std::array<Eigen::Vector3i, 2>> m_edge_tris;
 
     // Default constructor.
     Mesh() = default;
@@ -43,6 +48,8 @@ class Mesh {
     Triangle get_triangle(const Eigen::Vector3i &tri) const {
         return {m_verts[tri[0]], m_verts[tri[1]], m_verts[tri[2]]};
     }
+    // Get a triangle's edges from a provided Vector3i.
+    std::array<Edge, 3> get_triangle_edges(const Eigen::Vector3i &tri) const;
 
     // Computes the convex hull of the mesh. Fast, but can be unstable.
     Mesh computeCH() const;
@@ -69,10 +76,11 @@ class Mesh {
     std::array<double, 6> bounding_box() const { return m_bbox; };
 
     // MCTS helpers
-    std::tuple<Eigen::Vector3d,Eigen::Vector3d,Eigen::Vector3d> trianglePoints(const Eigen::Vector3i& tri);
-    vector<Edge> triangleEdges(const Eigen::Vector3i& tri);
+    std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> trianglePoints(
+        const Eigen::Vector3i &tri);
+    vector<Edge> triangleEdges(const Eigen::Vector3i &tri);
     vector<Edge> concave_edges();
-    std::vector<Edge> shared_edges(const Eigen::Vector3i& tri1, const Eigen::Vector3i& tri2);
+    std::vector<Edge> shared_edges(const Eigen::Vector3i &tri1, const Eigen::Vector3i &tri2);
 
     // Concavity Metric private members
  private:
@@ -95,7 +103,7 @@ class Mesh {
                                                     const Eigen::Vector3d &p2,
                                                     const Eigen::Vector3d &p3);
 
-    double angle_between_tris(const Eigen::Vector3i& t1, const Eigen::Vector3i& t2);
+    double angle_between_tris(const Eigen::Vector3i &t1, const Eigen::Vector3i &t2);
 
     float compute_tri_areas();  // should probably be private
 };

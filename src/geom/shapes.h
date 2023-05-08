@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <algorithm>
 #include <array>
 #include <vector>
 
@@ -33,7 +34,7 @@ class Plane {
         assert(mat.determinant() < EPSILON);
     }
 
-    Plane(const quickhull::Plane<double> &p, const Mesh &m);
+    Plane(const quickhull::Plane<double> &p, std::array<double, 6> bbox);
 
     std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> bounds() {
         return std::make_tuple(p0, p1, p2, p3);
@@ -58,28 +59,55 @@ class Triangle {
 class Edge {
  public:
     Eigen::Vector3d a_, b_;
+    int ai_ = 0, bi_ = 0;  // If we need them, get the corresponding indices in the Mesh
 
     Edge() = default;
+    // In these cases, we don't care about indices, only the actual points in 3D.
     Edge(const Eigen::Vector3d &a, const Eigen::Vector3d &b) : a_(a), b_(b) {}
     Edge(const std::array<Eigen::Vector3d, 2> &e) : a_(e[0]), b_(e[1]) {}
-
-    inline Eigen::Vector3d operator[](int i) const {
-        assert(i == 0 || i == 1);
-        return i ? b_ : a_;
+    // In this case, we must maintain that each edge is ordered such that ai_ < bi_, for proper
+    // ordering.
+    Edge(const Eigen::Vector3d &a, const Eigen::Vector3d &b, int ai, int bi) {
+        if (ai < bi) {
+            a_ = a, b_ = b, ai_ = ai, bi_ = bi;
+        } else {
+            a_ = b, b_ = a, ai_ = bi, bi_ = ai;
+        }
+    }
+    Edge(const std::array<Eigen::Vector3d, 2> &e, const std::array<int, 2> &ei) {
+        if (ei[0] < ei[1]) {
+            a_ = e[0], b_ = e[1], ai_ = ei[0], bi_ = ei[1];
+        } else {
+            a_ = e[1], b_ = e[0], ai_ = ei[1], bi_ = ei[0];
+        }
     }
 
     inline Eigen::Vector3d midpoint() const { return (a_ + b_) / 2.; }
 
     // Get distances to points/edges/triangles
-    double dist_to(const Eigen::Vector3d &pt) const { return dist(this->midpoint(), pt); }
-    double dist_to(const Edge &e) const { return dist_pt2edge(this->midpoint(), e); }
-    double dist_to(const Triangle &tri) const { return dist_pt2tri(this->midpoint(), tri); }
+    double dist_to(const Eigen::Vector3d &pt) const { return std::min(dist(a_, pt), dist(b_, pt)); }
+    double dist_to(const Edge &e) const {
+        return std::min(dist_pt2edge(a_, e), dist_pt2edge(b_, e));
+    }
+    double dist_to(const Triangle &tri) const {
+        return std::min(dist_pt2tri(a_, tri), dist_pt2tri(b_, tri));
+    }
+
+    // Array accessing. Here, we only need the actual values
+    inline Eigen::Vector3d operator[](int i) const {
+        assert(i == 0 || i == 1);
+        return i ? b_ : a_;
+    }
+
+    // For proper usage within a map
+    inline bool operator<(const Edge &other) const {
+        return ai_ < other.ai_ || (ai_ == other.ai_ && bi_ < other.bi_);
+    }
 
     // Equality operators
-    bool operator==(const Edge& other) const {
+    inline bool operator==(const Edge &other) const {
         return (a_ == other.a_ && b_ == other.b_) || (a_ == other.b_ && b_ == other.a_);
     }
-    bool operator!=(const Edge& other) const {
-        return !(*this == other);
-    }
+
+    inline bool operator!=(const Edge &other) const { return !(*this == other); }
 };
