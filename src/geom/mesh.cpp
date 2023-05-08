@@ -93,7 +93,7 @@ Mesh Mesh::computeVCH() const {
 
     // TODO: see if I can just tell btConvexHullComputer to interpret a vector<Vector3f> as a
     // vector<array<double, 3>>; looking at the internal CH computation, it looks like it should be
-    // fine, but not confident.
+    // fine, but not confident. Also doesn't matter that much, just slightly inefficient to copy...
     ch.compute(points, -1.0, -1.0);
 
     // Convert back from CH to Mesh
