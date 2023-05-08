@@ -132,9 +132,21 @@ vector<Plane> Mesh::get_cutting_planes(const Edge& concave_edge, int k) {
     res.reserve(k);
 
     // Get triangles associated with concave edge of interest
-    auto [t1, t2] = this->m_edge_tris.at(concave_edge);
+    auto [t1_inds, t2_inds] = this->m_edge_tris.at(concave_edge);
+    auto t1 = this->get_triangle(t1_inds), t2 = this->get_triangle(t2_inds);
     // Compute normals for the concave edge to each of the triangles
-    return {};
+    auto n1 = edge_tri_norm(concave_edge, t1), n2 = edge_tri_norm(concave_edge, t2);
+    // Get Quaternions for n1 -> n2
+    Quaterniond qa = Quaterniond::Identity(), qb = Quaterniond::FromTwoVectors(n1, n2);
+    // slerp it k times
+    for (double t = 0, step = 1. / k; t < 1.; t += step) {
+        auto norm = qa.slerp(t, qb) * n1;
+        // Now, construct a plane from the concave edge, the norm, and the mesh's bounding box
+        auto plane = Plane(concave_edge, norm, bbox);
+        res.push_back(plane);
+    }
+
+    return res;
 }
 
 vector<Mesh> Mesh::cut_plane(quickhull::Plane<double>& p) {

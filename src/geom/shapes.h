@@ -34,6 +34,7 @@ class Plane {
         assert(mat.determinant() < EPSILON);
     }
 
+    Plane(Edge e, const Eigen::Vector3d &norm, std::array<double, 6> bbox);
     Plane(const quickhull::Plane<double> &p, std::array<double, 6> bbox);
 
     std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> bounds() {
