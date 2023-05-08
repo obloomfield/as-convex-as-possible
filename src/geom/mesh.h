@@ -67,6 +67,12 @@ class Mesh {
 
     std::array<double, 6> bounding_box() const { return m_bbox; };
 
+    // MCTS helpers
+    std::tuple<Eigen::Vector3d,Eigen::Vector3d,Eigen::Vector3d> trianglePoints(const Eigen::Vector3i& tri);
+    vector<Edge> triangleEdges(const Eigen::Vector3i& tri);
+    vector<Edge> concave_edges();
+    std::vector<Edge> shared_edges(const Eigen::Vector3i& tri1, const Eigen::Vector3i& tri2);
+
     // Concavity Metric private members
  private:
     // for Monte-Carlo Tree Search
@@ -84,9 +90,11 @@ class Mesh {
     float m_surface_area;
 
     // Concavity Metric private members
-
     static Eigen::Vector3d random_barycentric_coord(const Eigen::Vector3f &p1,
                                                     const Eigen::Vector3f &p2,
                                                     const Eigen::Vector3f &p3);
+
+    double angle_between_tris(const Eigen::Vector3i& t1, const Eigen::Vector3i& t2);
+
     float compute_tri_areas();  // should probably be private
 };

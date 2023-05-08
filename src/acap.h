@@ -6,7 +6,6 @@
 
 #include "Eigen/StdList"
 #include "Eigen/StdVector"
-#include "convex-hull/cost.h"
 #include "geom/mesh.h"
 #include "graphics/shape.h"
 

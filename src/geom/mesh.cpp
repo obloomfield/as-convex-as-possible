@@ -380,3 +380,62 @@ std::vector<Mesh> Mesh::merge(const std::vector<Mesh>& Q) {
     // TODO: implement
     return {};
 }
+
+
+vector<Edge> Mesh::shared_edges(const Vector3i& tri1, const Vector3i& tri2) {
+    vector<Edge> shared;
+    for (Edge e0 : triangleEdges(tri1)) {
+        for (Edge e1 : triangleEdges(tri2)) {
+            if (e0 == e1) shared.push_back(e0);
+        }
+    }
+    return shared;
+}
+
+std::tuple<Vector3d,Vector3d,Vector3d> Mesh::trianglePoints(const Vector3i& tri) {
+    const vector<Vector3f>& verts = m_verts;
+    return make_tuple(verts[tri[0]],verts[tri[1]],verts[tri[2]]);
+}
+
+vector<Edge> Mesh::triangleEdges(const Vector3i& tri) {
+    const vector<Vector3f>& verts = m_verts;
+    vector<Edge> edges;
+    for (int i = 0; i < 3; i++) {
+        Vector3f v0 = verts[tri[i % 3]], v1 = verts[tri[(i+1) % 3]];
+        edges.push_back(Edge(v0,v1));
+    }
+    assert(edges.size() == 3);
+    return edges;
+}
+
+vector<Edge> Mesh::concave_edges() {
+    vector<Edge> concave_edges;
+    for (const Vector3i& tri_1 : m_triangles) {
+        for (const Vector3i& tri_2 : m_triangles) {
+            vector<Edge> shared = shared_edges(tri_1,tri_2);
+            if (shared.size() == 1 && angle_between_tris(tri_1,tri_2) < M_PI) {
+                concave_edges.push_back(shared[0]);
+            }
+//             make sure no double,etc. counting for edge
+//             we need to check the direction vector of the two points on the shared edge. normalized.
+//             ...
+        }
+    }
+    return concave_edges;
+}
+
+double Mesh::angle_between_tris(const Vector3i& t1, const Vector3i& t2) {
+    const vector<Vector3f>& verts = m_verts;
+    Vector3d u0 = verts[t1[0]], u1 = verts[t1[1]], u2 = verts[t1[2]];
+    Vector3d v0 = verts[t2[0]], v1 = verts[t2[1]], v2 = verts[t2[2]];
+
+    Vector3d n1 = (u1 - u0).cross(u2 - u0);
+    n1.normalize();
+
+    Vector3d n2 = (v1 - v0).cross(v2 - v0);
+    n2.normalize();
+
+    double dotProduct = n1.dot(n2);
+    double angle = acos(dotProduct);
+    return angle;
+}

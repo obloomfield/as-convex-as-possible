@@ -1,5 +1,7 @@
 #include "shapes.h"
 
+using namespace Eigen;
+
 float BOUNDS_PADDING = 1.f;
 
 Plane::Plane(const quickhull::Plane<double>& p, const Mesh& m) {

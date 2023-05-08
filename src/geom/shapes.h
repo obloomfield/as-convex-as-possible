@@ -73,4 +73,12 @@ class Edge {
     double dist_to(const Eigen::Vector3d &pt) const { return dist(this->midpoint(), pt); }
     double dist_to(const Edge &e) const { return dist_pt2edge(this->midpoint(), e); }
     double dist_to(const Triangle &tri) const { return dist_pt2tri(this->midpoint(), tri); }
+
+    // Equality operators
+    bool operator==(const Edge& other) const {
+        return (a_ == other.a_ && b_ == other.b_) || (a_ == other.b_ && b_ == other.a_);
+    }
+    bool operator!=(const Edge& other) const {
+        return !(*this == other);
+    }
 };
