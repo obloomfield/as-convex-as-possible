@@ -21,7 +21,7 @@ inline bool same_dir(const Vector3d& a, const Vector3d& b) {
 }
 
 // Computes the distance between a point and a line segment (i.e. an edge).
-double dist_pt2seg(const Vector3d& pt, const Edge& edge) {
+double dist_pt2edge(const Vector3d& pt, const Edge& edge) {
     // Compute direction vector of the line segment
     auto d_vec = (edge[1] - edge[0]) / dist(edge[0], edge[1]);
 
@@ -64,9 +64,9 @@ double dist_pt2tri(const Vector3d& pt, const Triangle& tri) {
         return d;
     } else {
         // If not, compute minimum of distance between point and the 3 edges and 3 verts
-        return min(min(min(dist_pt2seg(pt, {tri[0], tri[1]}),   // Compute minimum of distance
-                           dist_pt2seg(pt, {tri[1], tri[2]})),  // between pt and the 3 edges
-                       dist_pt2seg(pt, {tri[2], tri[0]})),
+        return min(min(min(dist_pt2edge(pt, {tri[0], tri[1]}),   // Compute minimum of distance
+                           dist_pt2edge(pt, {tri[1], tri[2]})),  // between pt and the 3 edges
+                       dist_pt2edge(pt, {tri[2], tri[0]})),
                    min(min(dist(pt, tri[0]),                    // Compute minimum of distance
                            dist(pt, tri[1])),                   // between pt and the 3 points
                        dist(pt, tri[2])));

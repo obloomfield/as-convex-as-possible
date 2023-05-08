@@ -8,8 +8,11 @@
 
 class Mesh;
 class Triangle;
+class Edge;
 
 // Forward declare; will be defined in utils.h
+double dist(const Eigen::Vector3d &a, const Eigen::Vector3d &b);
+double dist_pt2edge(const Eigen::Vector3d &pt, const Edge &e);
 double dist_pt2tri(const Eigen::Vector3d &pt, const Triangle &tri);
 
 class Plane {
@@ -66,5 +69,8 @@ class Edge {
 
     inline Eigen::Vector3d midpoint() const { return (a_ + b_) / 2.; }
 
-    double dist_to_tri(const Triangle &tri) { return dist_pt2tri(this->midpoint(), tri); }
+    // Get distances to points/edges/triangles
+    double dist_to(const Eigen::Vector3d &pt) const { return dist(this->midpoint(), pt); }
+    double dist_to(const Edge &e) const { return dist_pt2edge(this->midpoint(), e); }
+    double dist_to(const Triangle &tri) const { return dist_pt2tri(this->midpoint(), tri); }
 };

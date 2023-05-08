@@ -6,6 +6,7 @@
 #include <set>
 #include <vector>
 
+#include "convex-hull/concavity.h"
 #include "convex-hull/mcts.h"
 #include "graphics/meshloader.h"
 
@@ -66,8 +67,7 @@ vector<Mesh> ACAP::ACD(Mesh mesh) {
     while (Q.size() > 0) {
         vector<Mesh> new_Q;
         for (const Mesh &cur_mesh : Q) {
-            Mesh convex = cur_mesh.computeVCH();
-            float cost = Cost::total_cost(cur_mesh, convex);
+            float cost = ConcavityMetric::concavity(cur_mesh);
 
             if (cost > COST_THRESHOLD) {
                 // TODO: MONTE CARLO TREE SEARCH
@@ -77,9 +77,10 @@ vector<Mesh> ACAP::ACD(Mesh mesh) {
                 vector<Mesh> fragments = mesh.cut_plane(p);
                 Mesh cL = fragments[0], cR = fragments[1];
 
-                if (cL.vertices().size() > 0) new_Q.push_back(cL);
-                if (cR.vertices().size() > 0) new_Q.push_back(cR);
+                if (cL.m_verts.size() > 0) new_Q.push_back(cL);
+                if (cR.m_verts.size() > 0) new_Q.push_back(cR);
             } else {  // put back!
+                auto convex = cur_mesh.computeCH();
                 D.push_back(convex);
                 mesh_parts.push_back(cur_mesh);
             }

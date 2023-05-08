@@ -9,11 +9,12 @@
 #include "Eigen/Dense"
 #include "btConvexHull/btConvexHullComputer.h"
 #include "graphics/shape.h"
-#include "shapes.h"
 #include "quickhull/QuickHull.hpp"
+#include "shapes.h"
 #include "utils/rng.h"
 
 class Plane;
+class Triangle;
 
 class Mesh {
  public:
@@ -38,6 +39,11 @@ class Mesh {
         m_bbox = compute_bounding_box();
     }
 
+    // Get a triangle from a provided Vector3i.
+    Triangle get_triangle(const Eigen::Vector3i &tri) const {
+        return {m_verts[tri[0]], m_verts[tri[1]], m_verts[tri[2]]};
+    }
+
     // Computes the convex hull of the mesh. Fast, but can be unstable.
     Mesh computeCH() const;
     // Computes the volumetric(?) convex hull of the mesh. More stable, but slower
@@ -60,7 +66,6 @@ class Mesh {
     std::vector<Mesh> cut_plane(quickhull::Plane<double> &p);
 
     std::array<double, 6> bounding_box() const { return m_bbox; };
-    std::vector<Eigen::Vector3f> vertices() const { return m_verts; };
 
     // Concavity Metric private members
  private:
