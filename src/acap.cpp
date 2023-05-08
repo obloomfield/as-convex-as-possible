@@ -6,8 +6,8 @@
 #include <set>
 #include <vector>
 
-#include "convex-hull/concavity.h"
-#include "convex-hull/mcts.h"
+#include "cost/concavity.h"
+#include "cost/mcts.h"
 #include "graphics/meshloader.h"
 
 using namespace std;

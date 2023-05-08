@@ -33,7 +33,7 @@ class Plane {
         assert(mat.determinant() < EPSILON);
     }
 
-    Plane(const quickhull::Plane<double> &p, const Mesh &m);
+    Plane(const quickhull::Plane<double> &p, std::array<double, 6> bbox);
 
     std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> bounds() {
         return std::make_tuple(p0, p1, p2, p3);
