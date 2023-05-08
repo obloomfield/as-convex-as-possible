@@ -9,7 +9,6 @@
 
 #include "KDTreeVectorOfVectorsAdaptor.h"
 #include "geom/mesh.h"
-#include "geom/utils.h"
 #include "nanoflann.h"
 
 #define k 0.3

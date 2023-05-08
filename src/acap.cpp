@@ -6,14 +6,14 @@
 #include <set>
 #include <vector>
 
-#include "convex-hull/concavity.h"
-#include "convex-hull/mcts.h"
+#include "cost/concavity.h"
+#include "cost/mcts.h"
 #include "graphics/meshloader.h"
 
 using namespace std;
 using namespace Eigen;
 
-#define MESH_PATH "meshes/sphere.obj"
+#define MESH_PATH "meshes/bunny.obj"
 
 // Here are some helpful controls for the application
 //
@@ -41,7 +41,7 @@ void ACAP::init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax) {
             Vector3d(1.4, -1.3, -1.005929));
     vector<Mesh> fragments = mesh.cut_plane(p);
 
-    assert(fragments.size() == 2);
+//    assert(fragments.size() == 2);
 
     return;
 

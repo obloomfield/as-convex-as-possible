@@ -1,7 +1,7 @@
 #include "mesh.h"
 
-#include "geom/utils.h"
 #include "mcut/mcut.h"
+#include "geom/utils.h"
 
 using namespace std;
 using namespace Eigen;
@@ -14,13 +14,21 @@ using namespace Eigen;
 
 constexpr string_view OUT_DIR = "fragments/";
 
-inline double signed_tri_volume(const Vector3f& p1, const Vector3f& p2, const Vector3f& p3) {
+inline double signed_tri_volume(const Vector3d& p1, const Vector3d& p2, const Vector3d& p3) {
     // From here: https://stackoverflow.com/a/1568551
     return p1.dot(p2.cross(p3)) / 6.;
 }
 
 vector<Vector3f> float_to_vec3f(const vector<float>& float_vec) {
     vector<Vector3f> vec3d_vec;
+    for (int i = 0; i < float_vec.size(); i += 3) {
+        vec3d_vec.emplace_back(float_vec[i], float_vec[i + 1], float_vec[i + 2]);
+    }
+    return vec3d_vec;
+}
+
+vector<Vector3d> float_to_vec3d(const vector<float>& float_vec) {
+    vector<Vector3d> vec3d_vec;
     for (int i = 0; i < float_vec.size(); i += 3) {
         vec3d_vec.emplace_back(float_vec[i], float_vec[i + 1], float_vec[i + 2]);
     }
@@ -66,7 +74,7 @@ Mesh Mesh::computeCH() const {
     const auto& ibuf = hull.getIndexBuffer();
     const auto& vbuf = hull.getVertexBuffer();
 
-    vector<Vector3f> new_verts;
+    vector<Vector3d> new_verts;
     vector<Vector3i> new_tris;
     new_verts.reserve(vbuf.size());
     new_tris.reserve(ibuf.size() / 3);
@@ -97,7 +105,7 @@ Mesh Mesh::computeVCH() const {
     ch.compute(points, -1.0, -1.0);
 
     // Convert back from CH to Mesh
-    vector<Vector3f> new_verts;
+    vector<Vector3d> new_verts;
     vector<Vector3i> new_tris;
     new_verts.reserve(ch.vertices.size());
     new_tris.reserve(ch.faces.size());  // could need more, but use as a baseline
@@ -144,7 +152,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
     uint32_t faces[numFaces * 3], faceSizes[numFaces];
 
     int i = 0;
-    for (const Vector3f& v : m_verts) {
+    for (const Vector3d& v : m_verts) {
         for (int j = 0; j < 3; j++) {
             vertices[i++] = static_cast<double>(v[j]);
         }
@@ -205,7 +213,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
     // 5. query the data of each connected component from MCUT
     // -------------------------------------------------------
     std::vector<Mesh> out;
-    assert((int)connComps.size() == 2);
+//    assert((int)connComps.size() == 2);
     for (int i = 0; i < (int)connComps.size(); ++i) {
         McConnectedComponent connComp = connComps[i];  // connected compoenent id
 
@@ -257,7 +265,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
                  (uint32_t*)faceIndices.data(), (uint32_t*)faceSizes.data(),
                  (uint32_t)faceSizes.size());
 
-        vector<Vector3f> verts = float_to_vec3f(vertices);
+        vector<Vector3d> verts = float_to_vec3d(vertices);
         vector<Vector3i> faces = uint_to_vec3i(faceIndices);
         out.push_back(Mesh(verts, faces));
     }
@@ -308,8 +316,8 @@ array<double, 6> Mesh::compute_bounding_box() {
     }
 
     // Initialize min and max coordinates to the first vertex
-    Vector3f minCoords = m_verts[0];
-    Vector3f maxCoords = m_verts[0];
+    Vector3d minCoords = m_verts[0];
+    Vector3d maxCoords = m_verts[0];
 
     // Iterate over all vertices to update min and max coordinates
     for (const auto& v : m_verts) {
@@ -326,8 +334,10 @@ array<double, 6> Mesh::compute_bounding_box() {
             maxCoords.x(), maxCoords.y(), maxCoords.z()};
 }
 
-Vector3d Mesh::random_barycentric_coord(const Vector3f& p1, const Vector3f& p2,
-                                        const Vector3f& p3) {
+Vector3d Mesh::random_barycentric_coord(const Vector3d& p1, const Vector3d& p2,
+                                        const Vector3d& p3) {
+
+
     float w1 = rand_f();
     float w2 = rand_f();
 
@@ -393,15 +403,15 @@ vector<Edge> Mesh::shared_edges(const Vector3i& tri1, const Vector3i& tri2) {
 }
 
 std::tuple<Vector3d,Vector3d,Vector3d> Mesh::trianglePoints(const Vector3i& tri) {
-    const vector<Vector3f>& verts = m_verts;
+    const vector<Vector3d>& verts = m_verts;
     return make_tuple(verts[tri[0]],verts[tri[1]],verts[tri[2]]);
 }
 
 vector<Edge> Mesh::triangleEdges(const Vector3i& tri) {
-    const vector<Vector3f>& verts = m_verts;
+    const vector<Vector3d>& verts = m_verts;
     vector<Edge> edges;
     for (int i = 0; i < 3; i++) {
-        Vector3f v0 = verts[tri[i % 3]], v1 = verts[tri[(i+1) % 3]];
+        Vector3d v0 = verts[tri[i % 3]], v1 = verts[tri[(i+1) % 3]];
         edges.push_back(Edge(v0,v1));
     }
     assert(edges.size() == 3);
@@ -425,7 +435,7 @@ vector<Edge> Mesh::concave_edges() {
 }
 
 double Mesh::angle_between_tris(const Vector3i& t1, const Vector3i& t2) {
-    const vector<Vector3f>& verts = m_verts;
+    const vector<Vector3d>& verts = m_verts;
     Vector3d u0 = verts[t1[0]], u1 = verts[t1[1]], u2 = verts[t1[2]];
     Vector3d v0 = verts[t2[0]], v1 = verts[t2[1]], v2 = verts[t2[2]];
 

@@ -213,6 +213,13 @@ bool Shape::getAnchorPos(int lastSelected,
 
 // ================== Accessors
 
+const vector<Vector3d> Shape::getVerticesDouble() {
+    vector<Vector3d> verts;
+    for (Vector3f v : m_vertices) {
+        verts.push_back(v.cast<double>());
+    }
+    return verts;
+}
 const vector<Vector3f>   &Shape::getVertices() { return m_vertices; }
 const vector<Vector3i>   &Shape::getFaces()    { return m_faces;    }
 const unordered_set<int> &Shape::getAnchors()  { return m_anchors;  }

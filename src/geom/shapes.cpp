@@ -1,4 +1,5 @@
 #include "shapes.h"
+#include "mesh.h"
 
 using namespace Eigen;
 

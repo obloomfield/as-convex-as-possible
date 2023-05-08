@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "quickhull/Structs/Plane.hpp"
+//#include "mesh.h"
 
 class Mesh;
 class Triangle;

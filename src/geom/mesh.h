@@ -19,7 +19,7 @@ class Triangle;
 class Mesh {
  public:
     // Vertices/triangles information.
-    std::vector<Eigen::Vector3f> m_verts;
+    std::vector<Eigen::Vector3d> m_verts;
     std::vector<Eigen::Vector3i> m_triangles;
 
     // Default constructor.
@@ -27,14 +27,14 @@ class Mesh {
 
     // Constructs a mesh from a list of vertices and triangles. Initializes total
     // surface area.
-    Mesh(std::vector<Eigen::Vector3f> verts, std::vector<Eigen::Vector3i> tris)
+    Mesh(std::vector<Eigen::Vector3d> verts, std::vector<Eigen::Vector3i> tris)
         : m_verts(verts), m_triangles(tris) {
         m_surface_area = compute_tri_areas();
         m_bbox = compute_bounding_box();
     }
 
     // Constructs a Mesh from a Shape object. Initializes total surface area.
-    Mesh(Shape m_shape) : m_verts(m_shape.getVertices()), m_triangles(m_shape.getFaces()) {
+    Mesh(Shape m_shape) : m_verts(m_shape.getVerticesDouble()), m_triangles(m_shape.getFaces()) {
         m_surface_area = compute_tri_areas();
         m_bbox = compute_bounding_box();
     }
@@ -91,9 +91,9 @@ class Mesh {
     float m_surface_area;
 
     // Concavity Metric private members
-    static Eigen::Vector3d random_barycentric_coord(const Eigen::Vector3f &p1,
-                                                    const Eigen::Vector3f &p2,
-                                                    const Eigen::Vector3f &p3);
+    static Eigen::Vector3d random_barycentric_coord(const Eigen::Vector3d &p1,
+                                                    const Eigen::Vector3d &p2,
+                                                    const Eigen::Vector3d &p3);
 
     double angle_between_tris(const Eigen::Vector3i& t1, const Eigen::Vector3i& t2);
 
