@@ -62,6 +62,7 @@ class Mesh {
     // 2000)
     pair<vector<Eigen::Vector3d>, std::vector<int>> sample_point_set(int resolution = 2000) const;
 
+    // Get k cutting planes for the mesh along a concave edge, from one triangle to another.
     std::vector<Mesh> cut_plane(Plane &p);
     std::vector<Mesh> cut_plane(quickhull::Plane<double> &p);
 
