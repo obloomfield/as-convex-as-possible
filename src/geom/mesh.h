@@ -69,11 +69,13 @@ class Mesh {
     std::array<double, 6> bounding_box() const { return m_bbox; };
 
     // MCTS helpers
-    vector<Edge> concave_edges();
+    vector<Edge> get_concave_edges() const;
     std::vector<Edge> shared_edges(const Eigen::Vector3i &tri1, const Eigen::Vector3i &tri2);
     std::vector<Mesh> merge(const std::vector<Mesh> &Q);
 
-    // Concavity Metric private members
+    // For helpful intermediate step visualizations
+    void save_to_file(const std::string &path);
+
  private:
     // for Monte-Carlo Tree Search
     std::array<double, 6> m_bbox;

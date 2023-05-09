@@ -40,12 +40,14 @@ class ConcavityMetric {
     static double concavity(const Mesh& S);
 
     /**
-     * @brief Sorts a list of concave edges by shortest distance to a convex hull CH, descending.
-     * @param CH the mesh to check distance of; assumed to be a convex hull.
+     * @brief Sorts a list of concave edges by shortest distance to a convex hull CH, descending
+     * (i.e. the first edge in the queue has the furthest distance to the CH).
+     * @param S the mesh to check distance of; not a convex hull!
      * @param concave_edges the list of concave edges to check
-     * @return a deque of concave edges, sorted descending by shortest distance to the convex hull.
+     * @return a deque of concave edges, sorted descending by furthest to closest distance to the
+     * convex hull.
      */
-    static std::deque<Edge> sort_concave_edges(const Mesh&  curr_mesh,
+    static std::deque<Edge> sort_concave_edges(const Mesh& S,
                                                const std::vector<Edge>& concave_edges);
 
  private:

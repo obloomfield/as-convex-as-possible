@@ -18,7 +18,7 @@ double ConcavityMetric::concavity(const Mesh& S) {
     return max(rv, hb);
 }
 
-deque<Edge> ConcavityMetric::sort_concave_edges(const Mesh&  curr_mesh,const vector<Edge>& concave_edges) {
+deque<Edge> ConcavityMetric::sort_concave_edges(const Mesh& S, const vector<Edge>& concave_edges) {
     // Here, we iterate through each of the triangles of the convex hull CH, and compute the
     // shortest distance between the edge and that triangle.
     //
@@ -28,7 +28,7 @@ deque<Edge> ConcavityMetric::sort_concave_edges(const Mesh&  curr_mesh,const vec
 
     // Map distances to edges; keeps in order for later
     map<double, Edge> edge_dists;
-    Mesh CH = curr_mesh.computeCH();
+    Mesh CH = S.computeCH();
 
     // Find shortest distance from edge to the convex hull:
     for (auto&& e : concave_edges) {

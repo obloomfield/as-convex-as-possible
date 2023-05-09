@@ -1,18 +1,17 @@
-#include "mainwindow.h"
+#include <QApplication>
+#include <QScreen>
+#include <QSurfaceFormat>
 #include <cstdlib>
 #include <ctime>
 
-#include <QApplication>
-#include <QSurfaceFormat>
-#include <QScreen>
+#include "mainwindow.h"
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     srand(static_cast<unsigned>(time(0)));
 
     // Create a Qt application
     QApplication a(argc, argv);
-    QCoreApplication::setApplicationName("ARAP");
+    QCoreApplication::setApplicationName("ACAP");
     QCoreApplication::setOrganizationName("CS 2240");
     QCoreApplication::setApplicationVersion(QT_VERSION_STR);
 
@@ -32,7 +31,6 @@ int main(int argc, char *argv[])
         w.show();
     else
         w.showMaximized();
-
 
     return a.exec();
 }

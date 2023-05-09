@@ -284,9 +284,10 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
         // ------------------------
         // TODO: remove
 
-        if (PRINT_INTERMEDIATE_OBJ) writeOBJ(fname.str(), (float*)f.data(), (uint32_t)vertices.size() / 3,
-                 (uint32_t*)faceIndices.data(), (uint32_t*)faceSizes.data(),
-                 (uint32_t)faceSizes.size());
+        if (PRINT_INTERMEDIATE_OBJ)
+            writeOBJ(fname.str(), (float*)f.data(), (uint32_t)vertices.size() / 3,
+                     (uint32_t*)faceIndices.data(), (uint32_t*)faceSizes.data(),
+                     (uint32_t)faceSizes.size());
 
         vector<Vector3d> verts = vec3f_to_vec3d(float_to_vec3f(vertices));
         vector<Vector3i> faces = uint_to_vec3i(faceIndices);
@@ -358,21 +359,46 @@ vector<Edge> Mesh::shared_edges(const Vector3i& tri1, const Vector3i& tri2) {
     return shared;
 }
 
-vector<Edge> Mesh::concave_edges() {
+vector<Edge> Mesh::get_concave_edges() const {
     vector<Edge> concave_edges;
-    for (const Vector3i& tri_1 : m_triangles) {
-        for (const Vector3i& tri_2 : m_triangles) {
-            vector<Edge> shared = shared_edges(tri_1, tri_2);
-            if (shared.size() == 1 && angle_between_tris(tri_1, tri_2) < M_PI) {
-                concave_edges.push_back(shared[0]);
-            }
-            //             make sure no double,etc. counting for edge
-            //             we need to check the direction vector of the two points on the shared
-            //             edge. normalized.
-            //             ...
+    for (const auto& [edge, tris] : this->m_edge_tris) {
+        // Get the triangle points corresponding to each triangle's indices
+        auto [tri1_indices, tri2_indices] = tris;
+        Triangle tri1 = this->get_triangle(tri1_indices);
+        Triangle tri2 = this->get_triangle(tri2_indices);
+
+        // Get the vertices that the triangles don't share
+        Vector3d v1 = get_third_point(tri1, edge), v2 = get_third_point(tri2, edge);
+
+        // Check angle between the two triangles
+        Vector3d u = v1 - edge.a_, v = v2 - edge.a_;
+        double dot = u.dot(v);
+
+        // is angle less than 180 (is edge concave)? Add to list:
+        if (dot >= 0.0) {
+            concave_edges.push_back(edge);
         }
     }
     return concave_edges;
+}
+
+void Mesh::save_to_file(const string& path) {
+    ofstream outfile;
+    outfile.open(path);
+
+    // Write vertices
+    for (size_t i = 0; i < m_verts.size(); i++) {
+        const Vector3f& v = m_verts[i];
+        outfile << "v " << v[0] << " " << v[1] << " " << v[2] << endl;
+    }
+
+    // Write faces
+    for (size_t i = 0; i < m_triangles.size(); i++) {
+        const Vector3i& f = m_triangles[i];
+        outfile << "f " << (f[0] + 1) << " " << (f[1] + 1) << " " << (f[2] + 1) << endl;
+    }
+
+    outfile.close();
 }
 
 std::vector<Mesh> Mesh::merge(const std::vector<Mesh>& Q) {
