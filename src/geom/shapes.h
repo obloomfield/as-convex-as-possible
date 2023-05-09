@@ -3,10 +3,10 @@
 #include <Eigen/Dense>
 #include <algorithm>
 #include <array>
+#include <iostream>
 #include <vector>
 
 #include "quickhull/Structs/Plane.hpp"
-// #include "mesh.h"
 
 class Mesh;
 class Triangle;

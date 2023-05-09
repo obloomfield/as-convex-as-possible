@@ -1,7 +1,7 @@
 #include "mesh.h"
 
-#include "geom/utils.h"
-#include "mcut/mcut.h"
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <util/tiny_obj_loader.h>
 
 using namespace std;
 using namespace Eigen;
@@ -380,6 +380,56 @@ vector<Edge> Mesh::get_concave_edges() const {
         }
     }
     return concave_edges;
+}
+
+Mesh Mesh::load_from_file(const std::string& path) {
+    vector<Vector3i> faces;
+    vector<Vector3d> verts;
+
+    // Load from obj file
+    tinyobj::attrib_t attrib;
+    vector<tinyobj::shape_t> shapes;
+    vector<tinyobj::material_t> materials;
+
+    QFileInfo info(QString(path.c_str()));
+    string err;
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err,
+                                info.absoluteFilePath().toStdString().c_str(),
+                                (info.absolutePath().toStdString() + "/").c_str(), true);
+    if (!err.empty()) {
+        cerr << err << endl;
+    }
+
+    if (!ret) {
+        cerr << "Failed to load/parse .obj file" << endl;
+        exit(1);
+    }
+
+    // Convert the tinyobj info into vertices/faces
+    size_t num_shapes = shapes.size();
+    for (size_t s = 0; s < num_shapes; s++) {
+        size_t index_offset = 0;
+
+        size_t num_faces = shapes[s].mesh.num_face_vertices.size();
+        for (size_t f = 0; f < num_faces; f++) {
+            unsigned int fv = shapes[s].mesh.num_face_vertices[f];
+            Vector3i face;
+
+            for (size_t v = 0; v < fv; v++) {
+                tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+
+                face[v] = idx.vertex_index;
+            }
+            faces.push_back(face);
+            index_offset += fv;
+        }
+    }
+    for (size_t i = 0; i < attrib.vertices.size(); i += 3) {
+        verts.emplace_back(attrib.vertices[i], attrib.vertices[i + 1], attrib.vertices[i + 2]);
+    }
+
+    // Construct and return a mesh from the vertices
+    return Mesh(verts, faces);
 }
 
 void Mesh::save_to_file(const string& path) {

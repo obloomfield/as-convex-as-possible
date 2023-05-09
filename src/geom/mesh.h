@@ -8,11 +8,13 @@
 #include <vector>
 
 #include "Eigen/Dense"
+#include "QtCore/qfileinfo.h"
 #include "btConvexHull/btConvexHullComputer.h"
+#include "geom/utils.h"
 #include "graphics/shape.h"
+#include "mcut/mcut.h"
 #include "quickhull/QuickHull.hpp"
 #include "shapes.h"
-#include "utils.h"
 #include "utils/rng.h"
 
 class Plane;
@@ -74,6 +76,7 @@ class Mesh {
     std::vector<Mesh> merge(const std::vector<Mesh> &Q);
 
     // For helpful intermediate step visualizations
+    static Mesh load_from_file(const std::string &path);
     void save_to_file(const std::string &path);
 
  private:

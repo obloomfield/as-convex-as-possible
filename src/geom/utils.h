@@ -6,6 +6,7 @@
 #include <cfloat>
 #include <cmath>
 #include <fstream>
+#include <iostream>
 #include <string>
 
 #include "geom/shapes.h"
@@ -132,8 +133,8 @@ inline double signed_tri_volume(const Vector3d& p1, const Vector3d& p2, const Ve
     return p1.dot(p2.cross(p3)) / 6.;
 }
 
-inline void writeOBJ(const Mesh& m, std::string filepath) {
-    //TODO: implement:
+inline void print_triangle(const Vector3i& tri) {
+    cout << "Triangle: " << (tri[0] + 1) << " " << (tri[1] + 1) << " " << (tri[2] + 1) << endl;
 }
 
 // Save verts/faces to an .obj file
