@@ -3,10 +3,11 @@
 #include <Eigen/Dense>
 #include <algorithm>
 #include <array>
+#include <iostream>
+#include <set>
 #include <vector>
 
 #include "quickhull/Structs/Plane.hpp"
-//#include "mesh.h"
 
 class Mesh;
 class Triangle;
@@ -34,11 +35,16 @@ class Plane {
         assert(mat.determinant() < EPSILON);
     }
 
+    Plane(Edge e, const Eigen::Vector3d &norm, std::array<double, 6> bbox);
     Plane(const quickhull::Plane<double> &p, std::array<double, 6> bbox);
 
     std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> bounds() {
         return std::make_tuple(p0, p1, p2, p3);
     }
+
+    // For helpful intermediate step visualizations
+    static Plane load_from_file(const std::string &path);
+    void save_to_file(const std::string &path);
 };
 
 class Triangle {
@@ -56,31 +62,53 @@ class Triangle {
     }
 };
 
+inline bool operator<(const Eigen::Vector3d &a, const Eigen::Vector3d &b) {
+    for (int i = 0; i < 3; i++) {
+        if (a[i] < b[i]) return true;
+        if (a[i] > b[i]) return false;
+    }
+    return false;
+}
+
 class Edge {
  public:
     Eigen::Vector3d a_, b_;
-    int ai_ = 0, bi_ = 0;  // If we need them, get the corresponding indices in the Mesh
+    //    int ai_ = 0, bi_ = 0;  // If we need them, get the corresponding indices in the Mesh
 
     Edge() = default;
-    // In these cases, we don't care about indices, only the actual points in 3D.
-    Edge(const Eigen::Vector3d &a, const Eigen::Vector3d &b) : a_(a), b_(b) {}
-    Edge(const std::array<Eigen::Vector3d, 2> &e) : a_(e[0]), b_(e[1]) {}
+
+    // Maintain ordering such that a <= b always.
+    Edge(const Eigen::Vector3d &a, const Eigen::Vector3d &b) {
+        if (a < b) {
+            a_ = a, b_ = b;
+        } else {
+            a_ = b, b_ = a;
+        }
+    }
+    Edge(const std::array<Eigen::Vector3d, 2> &e) {
+        if (e[0] < e[1]) {
+            a_ = e[0], b_ = e[1];
+        } else {
+            a_ = e[1], b_ = e[0];
+        }
+    }
+
     // In this case, we must maintain that each edge is ordered such that ai_ < bi_, for proper
     // ordering.
-    Edge(const Eigen::Vector3d &a, const Eigen::Vector3d &b, int ai, int bi) {
-        if (ai < bi) {
-            a_ = a, b_ = b, ai_ = ai, bi_ = bi;
-        } else {
-            a_ = b, b_ = a, ai_ = bi, bi_ = ai;
-        }
-    }
-    Edge(const std::array<Eigen::Vector3d, 2> &e, const std::array<int, 2> &ei) {
-        if (ei[0] < ei[1]) {
-            a_ = e[0], b_ = e[1], ai_ = ei[0], bi_ = ei[1];
-        } else {
-            a_ = e[1], b_ = e[0], ai_ = ei[1], bi_ = ei[0];
-        }
-    }
+    //    Edge(const Eigen::Vector3d &a, const Eigen::Vector3d &b, int ai, int bi) {
+    //        if (ai < bi) {
+    //            a_ = a, b_ = b, ai_ = ai, bi_ = bi;
+    //        } else {
+    //            a_ = b, b_ = a, ai_ = bi, bi_ = ai;
+    //        }
+    //    }
+    //    Edge(const std::array<Eigen::Vector3d, 2> &e, const std::array<int, 2> &ei) {
+    //        if (ei[0] < ei[1]) {
+    //            a_ = e[0], b_ = e[1], ai_ = ei[0], bi_ = ei[1];
+    //        } else {
+    //            a_ = e[1], b_ = e[0], ai_ = ei[1], bi_ = ei[0];
+    //        }
+    //    }
 
     inline Eigen::Vector3d midpoint() const { return (a_ + b_) / 2.; }
 
@@ -99,14 +127,16 @@ class Edge {
         return i ? b_ : a_;
     }
 
-    // For proper usage within a map
+    // For map stuffs
     inline bool operator<(const Edge &other) const {
-        return ai_ < other.ai_ || (ai_ == other.ai_ && bi_ < other.bi_);
+        if (a_ < other.a_) return true;
+        if (other.a_ < a_) return false;
+        return b_ < other.b_;
     }
 
     // Equality operators
     inline bool operator==(const Edge &other) const {
-        return (a_ == other.a_ && b_ == other.b_) || (a_ == other.b_ && b_ == other.a_);
+        return a_.isApprox(other.a_) && b_.isApprox(other.b_);
     }
 
     inline bool operator!=(const Edge &other) const { return !(*this == other); }

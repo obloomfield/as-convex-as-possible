@@ -37,7 +37,7 @@ class ACAP {
  private:
     Shape m_shape;
 
-    std::vector<Mesh> ACD(Mesh mesh);
+    std::vector<Mesh> ACD(Mesh& mesh);
 
     std::vector<Mesh> merge(Mesh &mesh, std::vector<Mesh> &convex_meshes);
 };

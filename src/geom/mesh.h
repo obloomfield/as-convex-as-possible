@@ -8,11 +8,14 @@
 #include <vector>
 
 #include "Eigen/Dense"
+#include "QtCore/qfileinfo.h"
 #include "btConvexHull/btConvexHullComputer.h"
+#include "geom/utils.h"
+#include "graphics/meshloader.h"
 #include "graphics/shape.h"
+#include "mcut/mcut.h"
 #include "quickhull/QuickHull.hpp"
 #include "shapes.h"
-#include "utils.h"
 #include "utils/rng.h"
 
 class Plane;
@@ -23,7 +26,6 @@ class Mesh {
     // Vertices/triangles information.
     std::vector<Eigen::Vector3d> m_verts;
     std::vector<Eigen::Vector3i> m_triangles;
-
     // Map of Edge -> Triangles
     std::map<Edge, std::array<Eigen::Vector3i, 2>> m_edge_tris;
 
@@ -31,18 +33,11 @@ class Mesh {
     Mesh() = default;
 
     // Constructs a mesh from a list of vertices and triangles. Initializes total
-    // surface area.
-    Mesh(std::vector<Eigen::Vector3d> verts, std::vector<Eigen::Vector3i> tris)
-        : m_verts(verts), m_triangles(tris) {
-        m_surface_area = compute_tri_areas();
-        m_bbox = compute_bounding_box();
-    }
+    // surface area and edge map.
+    Mesh(std::vector<Eigen::Vector3d> verts, std::vector<Eigen::Vector3i> tris);
 
     // Constructs a Mesh from a Shape object. Initializes total surface area.
-    Mesh(Shape m_shape) : m_verts(m_shape.getVerticesDouble()), m_triangles(m_shape.getFaces()) {
-        m_surface_area = compute_tri_areas();
-        m_bbox = compute_bounding_box();
-    }
+    Mesh(Shape m_shape) : Mesh(m_shape.getVerticesDouble(), m_shape.getFaces()) {}
 
     // Get a triangle from a provided Vector3i.
     Triangle get_triangle(const Eigen::Vector3i &tri) const {
@@ -57,8 +52,6 @@ class Mesh {
     // than CH.
     Mesh computeVCH() const;
 
-    std::vector<Mesh> merge(const std::vector<Mesh> &Q);
-
     // Computes the volume of a mesh.
     double volume() const;
 
@@ -70,19 +63,23 @@ class Mesh {
     pair<vector<Eigen::Vector3d>, std::vector<int>> sample_point_set(int resolution = 2000) const;
 
     // Get k cutting planes for the mesh along a concave edge, from one triangle to another.
+    std::vector<Plane> get_cutting_planes(const Edge &concave_edge, int k);
+
+    // Cut the mesh with the specified cutting plane.
     std::vector<Mesh> cut_plane(Plane &p);
     std::vector<Mesh> cut_plane(quickhull::Plane<double> &p);
 
     std::array<double, 6> bounding_box() const { return m_bbox; };
 
     // MCTS helpers
-    std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> trianglePoints(
-        const Eigen::Vector3i &tri);
-    vector<Edge> triangleEdges(const Eigen::Vector3i &tri);
-    vector<Edge> concave_edges();
+    vector<Edge> get_concave_edges() const;
     std::vector<Edge> shared_edges(const Eigen::Vector3i &tri1, const Eigen::Vector3i &tri2);
+    std::vector<Mesh> merge(const std::vector<Mesh> &Q);
 
-    // Concavity Metric private members
+    // For helpful intermediate step visualizations
+    static Mesh load_from_file(const std::string &path);
+    void save_to_file(const std::string &path);
+
  private:
     // for Monte-Carlo Tree Search
     std::array<double, 6> m_bbox;

@@ -1,10 +1,9 @@
 #include "mesh.h"
 
-#include "mcut/mcut.h"
-#include "geom/utils.h"
-
 using namespace std;
 using namespace Eigen;
+
+const bool PRINT_INTERMEDIATE_OBJ = false;
 
 #define ASSERT(cond)                                \
     if (!(cond)) {                                  \
@@ -14,15 +13,30 @@ using namespace Eigen;
 
 constexpr string_view OUT_DIR = "fragments/";
 
-inline double signed_tri_volume(const Vector3f& p1, const Vector3f& p2, const Vector3f& p3) {
-    // From here: https://stackoverflow.com/a/1568551
-    return p1.dot(p2.cross(p3)) / 6.;
+Mesh::Mesh(std::vector<Eigen::Vector3d> verts, std::vector<Eigen::Vector3i> tris)
+    : m_verts(verts), m_triangles(tris) {
+    // Compute initial surface area and bounding box
+    m_surface_area = compute_tri_areas();
+    m_bbox = compute_bounding_box();
+
+    // For each triangle, get its edges; assign them to this triangle (each edge should have two
+    // triangles)
+    for (auto&& tri : tris) {
+        auto edges = this->get_triangle_edges(tri);
+        for (auto&& e : edges) {
+            // If edge already exists in map, assign to 2nd triangle; otherwise, assign to 1st
+            this->m_edge_tris[e][this->m_edge_tris.contains(e) ? 1 : 0] = tri;
+        }
+    }
+
+    // should have 1.5e = f?
+    cout << "Num edges: " << this->m_edge_tris.size()
+         << "\tNum triangles: " << this->m_triangles.size() << endl;
 }
 
 array<Edge, 3> Mesh::get_triangle_edges(const Vector3i& tri) const {
     auto t = this->get_triangle(tri);
-    return {Edge(t[0], t[1], tri[0], tri[1]), Edge(t[1], t[2], tri[1], tri[2]),
-            Edge(t[2], t[0], tri[2], tri[0])};
+    return {Edge(t[0], t[1]), Edge(t[1], t[2]), Edge(t[2], t[0])};
 }
 
 Mesh Mesh::computeCH() const {
@@ -111,6 +125,29 @@ double Mesh::volume() const {
     return abs(volume);
 }
 
+vector<Plane> Mesh::get_cutting_planes(const Edge& concave_edge, int k) {
+    auto bbox = this->bounding_box();
+    vector<Plane> res;
+    res.reserve(k);
+
+    // Get triangles associated with concave edge of interest
+    auto [t1_inds, t2_inds] = this->m_edge_tris.at(concave_edge);
+    auto t1 = this->get_triangle(t1_inds), t2 = this->get_triangle(t2_inds);
+    // Compute normals for the concave edge to each of the triangles
+    auto n1 = edge_tri_norm(concave_edge, t1), n2 = edge_tri_norm(concave_edge, t2);
+    // Get Quaternions for n1 -> n2
+    Quaterniond qa = Quaterniond::Identity(), qb = Quaterniond::FromTwoVectors(n1, n2);
+    // slerp it k times
+    for (double t = 0, step = 1. / k; t < 1.; t += step) {
+        auto norm = qa.slerp(t, qb) * n1;
+        // Now, construct a plane from the concave edge, the norm, and the mesh's bounding box
+        auto plane = Plane(concave_edge, norm, bbox);
+        res.push_back(plane);
+    }
+
+    return res;
+}
+
 vector<Mesh> Mesh::cut_plane(quickhull::Plane<double>& p) {
     Plane bound_plane = Plane(p, this->bounding_box());
     return cut_plane(bound_plane);
@@ -195,7 +232,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
     // 5. query the data of each connected component from MCUT
     // -------------------------------------------------------
     std::vector<Mesh> out;
-//    assert((int)connComps.size() == 2);
+    //    assert((int)connComps.size() == 2);
     for (int i = 0; i < (int)connComps.size(); ++i) {
         McConnectedComponent connComp = connComps[i];  // connected compoenent id
 
@@ -243,9 +280,11 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
         // save to mesh file (.obj)
         // ------------------------
         // TODO: remove
-        writeOBJ(fname.str(), (float*)f.data(), (uint32_t)vertices.size() / 3,
-                 (uint32_t*)faceIndices.data(), (uint32_t*)faceSizes.data(),
-                 (uint32_t)faceSizes.size());
+
+        if (PRINT_INTERMEDIATE_OBJ)
+            writeOBJ(fname.str(), (float*)f.data(), (uint32_t)vertices.size() / 3,
+                     (uint32_t*)faceIndices.data(), (uint32_t*)faceSizes.data(),
+                     (uint32_t)faceSizes.size());
 
         vector<Vector3d> verts = vec3f_to_vec3d(float_to_vec3f(vertices));
         vector<Vector3i> faces = uint_to_vec3i(faceIndices);
@@ -267,66 +306,6 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
     // TODO: remake Mesh objects for two connected components
 
     return out;
-}
-
-// go through each triangle and calculate area
-float Mesh::compute_tri_areas() {
-    float total_area = 0.f;
-    m_tri_areas.reserve(m_triangles.size());
-    m_cdf.reserve(m_triangles.size());
-
-    for (int i = 0; i < m_triangles.size(); ++i) {
-        auto& t = m_triangles[i];
-
-        auto& v1 = m_verts[t[0]];
-        auto& v2 = m_verts[t[1]];
-        auto& v3 = m_verts[t[2]];
-
-        // area of a triangle is two of its vectors crossed / 2
-        auto tri_area = (v2 - v1).cross(v3 - v1).norm() / 2.f;
-        total_area += tri_area;
-        m_cdf[i] = total_area;
-        m_tri_areas[i] = tri_area;
-    }
-
-    return total_area;
-}
-
-array<double, 6> Mesh::compute_bounding_box() {
-    if (m_verts.empty()) {
-        return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    }
-
-    // Initialize min and max coordinates to the first vertex
-    Vector3d minCoords = m_verts[0];
-    Vector3d maxCoords = m_verts[0];
-
-    // Iterate over all vertices to update min and max coordinates
-    for (const auto& v : m_verts) {
-        minCoords.x() = std::min(minCoords.x(), v.x());
-        minCoords.y() = std::min(minCoords.y(), v.y());
-        minCoords.z() = std::min(minCoords.z(), v.z());
-
-        maxCoords.x() = std::max(maxCoords.x(), v.x());
-        maxCoords.y() = std::max(maxCoords.y(), v.y());
-        maxCoords.z() = std::max(maxCoords.z(), v.z());
-    }
-
-    return {minCoords.x(), minCoords.y(), minCoords.z(),
-            maxCoords.x(), maxCoords.y(), maxCoords.z()};
-}
-
-Vector3d Mesh::random_barycentric_coord(const Vector3d& p1, const Vector3d& p2,
-                                        const Vector3d& p3) {
-    float w1 = rand_f();
-    float w2 = rand_f();
-
-    if (w1 + w2 >= 1.f) {
-        w1 = 1.f - w1;
-        w2 = 1.f - w2;
-    }
-
-    return (p1 * w1) + (p2 * w2) + (p3 * (1.f - (w1 + w2)));
 }
 
 pair<vector<Vector3d>, vector<int>> Mesh::sample_point_set(int resolution) const {
@@ -366,11 +345,6 @@ pair<vector<Vector3d>, vector<int>> Mesh::sample_point_set(int resolution) const
     return {point_samples, tri_ind_samples};
 }
 
-std::vector<Mesh> Mesh::merge(const std::vector<Mesh>& Q) {
-    // TODO: implement
-    return {};
-}
-
 vector<Edge> Mesh::shared_edges(const Vector3i& tri1, const Vector3i& tri2) {
     vector<Edge> shared;
     auto edges1 = this->get_triangle_edges(tri1), edges2 = this->get_triangle_edges(tri2);
@@ -382,37 +356,101 @@ vector<Edge> Mesh::shared_edges(const Vector3i& tri1, const Vector3i& tri2) {
     return shared;
 }
 
-std::tuple<Vector3d,Vector3d,Vector3d> Mesh::trianglePoints(const Vector3i& tri) {
-    const vector<Vector3d>& verts = m_verts;
-    return make_tuple(verts[tri[0]],verts[tri[1]],verts[tri[2]]);
-}
-
-vector<Edge> Mesh::triangleEdges(const Vector3i& tri) {
-    const vector<Vector3d>& verts = m_verts;
-    vector<Edge> edges;
-    for (int i = 0; i < 3; i++) {
-        Vector3d v0 = verts[tri[i % 3]], v1 = verts[tri[(i+1) % 3]];
-        edges.push_back(Edge(v0,v1));
-    }
-    assert(edges.size() == 3);
-    return edges;
-}
-
-vector<Edge> Mesh::concave_edges() {
+vector<Edge> Mesh::get_concave_edges() const {
     vector<Edge> concave_edges;
-    for (const Vector3i& tri_1 : m_triangles) {
-        for (const Vector3i& tri_2 : m_triangles) {
-            vector<Edge> shared = shared_edges(tri_1, tri_2);
-            if (shared.size() == 1 && angle_between_tris(tri_1, tri_2) < M_PI) {
-                concave_edges.push_back(shared[0]);
-            }
-            //             make sure no double,etc. counting for edge
-            //             we need to check the direction vector of the two points on the shared
-            //             edge. normalized.
-            //             ...
+    for (const auto& [edge, tris] : this->m_edge_tris) {
+        // Get the triangle points corresponding to each triangle's indices
+        auto [tri1_indices, tri2_indices] = tris;
+        Triangle tri1 = this->get_triangle(tri1_indices);
+        Triangle tri2 = this->get_triangle(tri2_indices);
+
+        // Get the vertices that the triangles don't share
+        Vector3d v1 = get_third_point(tri1, edge), v2 = get_third_point(tri2, edge);
+
+        // Check angle between the two triangles
+        Vector3d u = v1 - edge.a_, v = v2 - edge.a_;
+        double dot = u.dot(v);
+
+        // is angle less than 180 (is edge concave)? Add to list:
+        if (dot >= 0.0) {
+            concave_edges.push_back(edge);
         }
     }
     return concave_edges;
+}
+
+Mesh Mesh::load_from_file(const std::string& path) {
+    vector<Vector3i> faces;
+    vector<Vector3f> fverts;
+    if (!MeshLoader::loadTriMesh(path, fverts, faces)) {
+        exit(EXIT_FAILURE);
+    }
+
+    auto verts = vec3f_to_vec3d(fverts);
+
+    // Construct and return a mesh from the vertices
+    return Mesh(verts, faces);
+}
+
+void Mesh::save_to_file(const string& path) {
+    ofstream outfile;
+    outfile.open(path);
+
+    // Write vertices
+    for (size_t i = 0; i < m_verts.size(); i++) {
+        const Vector3d& v = m_verts[i];
+        outfile << "v " << v[0] << " " << v[1] << " " << v[2] << endl;
+    }
+
+    // Write faces
+    for (size_t i = 0; i < m_triangles.size(); i++) {
+        const Vector3i& f = m_triangles[i];
+        outfile << "f " << (f[0] + 1) << " " << (f[1] + 1) << " " << (f[2] + 1) << endl;
+    }
+
+    outfile.close();
+}
+
+std::vector<Mesh> Mesh::merge(const std::vector<Mesh>& Q) {
+    // TODO: implement
+    return {};
+}
+
+array<double, 6> Mesh::compute_bounding_box() {
+    if (m_verts.empty()) {
+        return {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    }
+
+    // Initialize min and max coordinates to the first vertex
+    Vector3d minCoords = m_verts[0];
+    Vector3d maxCoords = m_verts[0];
+
+    // Iterate over all vertices to update min and max coordinates
+    for (const auto& v : m_verts) {
+        minCoords.x() = std::min(minCoords.x(), v.x());
+        minCoords.y() = std::min(minCoords.y(), v.y());
+        minCoords.z() = std::min(minCoords.z(), v.z());
+
+        maxCoords.x() = std::max(maxCoords.x(), v.x());
+        maxCoords.y() = std::max(maxCoords.y(), v.y());
+        maxCoords.z() = std::max(maxCoords.z(), v.z());
+    }
+
+    return {minCoords.x(), minCoords.y(), minCoords.z(),
+            maxCoords.x(), maxCoords.y(), maxCoords.z()};
+}
+
+Vector3d Mesh::random_barycentric_coord(const Vector3d& p1, const Vector3d& p2,
+                                        const Vector3d& p3) {
+    float w1 = rand_f();
+    float w2 = rand_f();
+
+    if (w1 + w2 >= 1.f) {
+        w1 = 1.f - w1;
+        w2 = 1.f - w2;
+    }
+
+    return (p1 * w1) + (p2 * w2) + (p3 * (1.f - (w1 + w2)));
 }
 
 double Mesh::angle_between_tris(const Vector3i& t1, const Vector3i& t2) {
@@ -429,4 +467,27 @@ double Mesh::angle_between_tris(const Vector3i& t1, const Vector3i& t2) {
     double dotProduct = n1.dot(n2);
     double angle = acos(dotProduct);
     return angle;
+}
+
+// go through each triangle and calculate area
+float Mesh::compute_tri_areas() {
+    float total_area = 0.f;
+    m_tri_areas.reserve(m_triangles.size());
+    m_cdf.reserve(m_triangles.size());
+
+    for (int i = 0; i < m_triangles.size(); ++i) {
+        auto& t = m_triangles[i];
+
+        auto& v1 = m_verts[t[0]];
+        auto& v2 = m_verts[t[1]];
+        auto& v3 = m_verts[t[2]];
+
+        // area of a triangle is two of its vectors crossed / 2
+        auto tri_area = (v2 - v1).cross(v3 - v1).norm() / 2.f;
+        total_area += tri_area;
+        m_cdf[i] = total_area;
+        m_tri_areas[i] = tri_area;
+    }
+
+    return total_area;
 }

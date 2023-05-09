@@ -3,7 +3,10 @@
 
 #include <Eigen/Dense>
 #include <array>
+#include <cfloat>
+#include <cmath>
 #include <fstream>
+#include <iostream>
 #include <string>
 
 #include "geom/shapes.h"
@@ -11,6 +14,11 @@
 
 using namespace std;
 using namespace Eigen;
+
+inline bool approx(double x, double y) {
+    // https://stackoverflow.com/a/253874/15140014
+    return std::abs(x - y) <= (std::max(std::abs(x), std::abs(y)) * DBL_EPSILON);
+}
 
 inline vector<Vector3d> vec3f_to_vec3d(const vector<Vector3f>& v) {
     auto nv = v.size();
@@ -35,31 +43,37 @@ inline vector<Vector3i> uint_to_vec3i(const vector<uint32_t>& uint_vec) {
     return vec3i_vec;
 }
 
-inline double signed_tri_volume(const Vector3d& p1, const Vector3d& p2, const Vector3d& p3) {
-    // From here: https://stackoverflow.com/a/1568551
-    return p1.dot(p2.cross(p3)) / 6.;
-}
-
-inline double dist(const Vector3d& a, const Vector3d& b) {
-    return sqrt((a - b).dot(a - b));
+inline Vector3d get_third_point(const Triangle& t, const Edge& e) {
+    if (!t[0].isApprox(e[0]) && !t[0].isApprox(e[1])) return t[0];
+    if (!t[1].isApprox(e[0]) && !t[1].isApprox(e[1])) return t[1];
+    return t[2];
 }
 
 inline bool same_dir(const Vector3d& a, const Vector3d& b) {
     return a.dot(b) > 0;
 }
 
-// Computes the distance between a point and a line segment (i.e. an edge).
-inline double dist_pt2edge(const Vector3d& pt, const Edge& edge) {
+inline Vector3d project_onto_edge(const Edge& e, const Vector3d& pt) {
     // Compute direction vector of the line segment
-    auto d_vec = (edge[1] - edge[0]) / dist(edge[0], edge[1]);
+    auto d_vec = (e[1] - e[0]).normalized();
 
     // Get vector from an endpoint to the point
-    auto v = pt - edge[0];
+    auto v = pt - e[0];
 
     // Compute dot product, then project pt onto the line
     auto t = v.dot(d_vec);
-    auto proj = edge[0] + t * d_vec;
+    auto proj = e[0] + t * d_vec;
 
+    return proj;
+}
+
+inline double dist(const Vector3d& a, const Vector3d& b) {
+    return sqrt((a - b).dot(a - b));
+}
+
+// Computes the distance between a point and a line segment (i.e. an edge).
+inline double dist_pt2edge(const Vector3d& pt, const Edge& edge) {
+    auto proj = project_onto_edge(edge, pt);
     return dist(pt, proj);
 }
 
@@ -99,6 +113,26 @@ inline double dist_pt2tri(const Vector3d& pt, const Triangle& tri) {
                            dist(pt, tri[1])),                    // between pt and the 3 points
                        dist(pt, tri[2])));
     }
+}
+
+inline Vector3d edge_pt_norm(const Edge& e, const Vector3d& pt) {
+    auto proj = project_onto_edge(e, pt);
+    auto n = (pt - proj).normalized();
+    return n;
+}
+
+inline Vector3d edge_tri_norm(const Edge& e, const Triangle& t) {
+    auto non_edge_pt = get_third_point(t, e);
+    return edge_pt_norm(e, non_edge_pt);
+}
+
+inline double signed_tri_volume(const Vector3d& p1, const Vector3d& p2, const Vector3d& p3) {
+    // From here: https://stackoverflow.com/a/1568551
+    return p1.dot(p2.cross(p3)) / 6.;
+}
+
+inline void print_triangle(const Vector3i& tri) {
+    cout << "Triangle: " << (tri[0] + 1) << " " << (tri[1] + 1) << " " << (tri[2] + 1) << endl;
 }
 
 // Save verts/faces to an .obj file
