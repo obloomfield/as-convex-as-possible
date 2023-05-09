@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <iostream>
+#include <set>
 #include <vector>
 
 #include "quickhull/Structs/Plane.hpp"
@@ -40,6 +41,10 @@ class Plane {
     std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> bounds() {
         return std::make_tuple(p0, p1, p2, p3);
     }
+
+    // For helpful intermediate step visualizations
+    static Plane load_from_file(const std::string &path);
+    void save_to_file(const std::string &path);
 };
 
 class Triangle {
