@@ -132,6 +132,10 @@ inline double signed_tri_volume(const Vector3d& p1, const Vector3d& p2, const Ve
     return p1.dot(p2.cross(p3)) / 6.;
 }
 
+inline void writeOBJ(const Mesh& m, std::string filepath) {
+    //TODO: implement:
+}
+
 // Save verts/faces to an .obj file
 inline void writeOBJ(const std::string& path, const float* ccVertices, const int ccVertexCount,
                      const uint32_t* ccFaceIndices, const uint32_t* faceSizes,

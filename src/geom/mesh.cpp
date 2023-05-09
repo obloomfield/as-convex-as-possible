@@ -6,6 +6,8 @@
 using namespace std;
 using namespace Eigen;
 
+const bool PRINT_INTERMEDIATE_OBJ = false;
+
 #define ASSERT(cond)                                \
     if (!(cond)) {                                  \
         fprintf(stderr, "MCUT error: %s\n", #cond); \
@@ -281,7 +283,8 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
         // save to mesh file (.obj)
         // ------------------------
         // TODO: remove
-        writeOBJ(fname.str(), (float*)f.data(), (uint32_t)vertices.size() / 3,
+
+        if (PRINT_INTERMEDIATE_OBJ) writeOBJ(fname.str(), (float*)f.data(), (uint32_t)vertices.size() / 3,
                  (uint32_t*)faceIndices.data(), (uint32_t*)faceSizes.data(),
                  (uint32_t)faceSizes.size());
 

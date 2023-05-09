@@ -60,7 +60,7 @@ void ACAP::init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax) {
 // NEED REPRESENTATIONS FOR:
 // - Mesh
 // - Plane
-vector<Mesh> ACAP::ACD(Mesh mesh) {
+vector<Mesh> ACAP::ACD(Mesh& mesh) {
     vector<Mesh> Q = {mesh};
     vector<Mesh> D, mesh_parts;
 
