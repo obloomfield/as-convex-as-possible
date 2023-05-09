@@ -55,8 +55,7 @@ inline bool same_dir(const Vector3d& a, const Vector3d& b) {
 
 inline Vector3d project_onto_edge(const Edge& e, const Vector3d& pt) {
     // Compute direction vector of the line segment
-    auto d_vec = e[1] - e[0];
-    d_vec.normalize();
+    auto d_vec = (e[1] - e[0]).normalized();
 
     // Get vector from an endpoint to the point
     auto v = pt - e[0];
@@ -118,8 +117,7 @@ inline double dist_pt2tri(const Vector3d& pt, const Triangle& tri) {
 
 inline Vector3d edge_pt_norm(const Edge& e, const Vector3d& pt) {
     auto proj = project_onto_edge(e, pt);
-    auto n = pt - proj;
-    n.normalize();
+    auto n = (pt - proj).normalized();
     return n;
 }
 

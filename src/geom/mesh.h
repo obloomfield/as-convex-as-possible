@@ -11,6 +11,7 @@
 #include "QtCore/qfileinfo.h"
 #include "btConvexHull/btConvexHullComputer.h"
 #include "geom/utils.h"
+#include "graphics/meshloader.h"
 #include "graphics/shape.h"
 #include "mcut/mcut.h"
 #include "quickhull/QuickHull.hpp"

@@ -2,11 +2,6 @@
 
 #include "mesh.h"
 
-#ifndef TINYOBJLOADER_IMPLEMENTATION
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <util/tiny_obj_loader.h>
-#endif
-
 using namespace Eigen;
 
 float BOUNDS_PADDING = 1.f;
@@ -60,33 +55,15 @@ Plane::Plane(const quickhull::Plane<double> &p, std::array<double, 6> bbox) {
 }
 
 Plane Plane::load_from_file(const std::string &path) {
-    // Load from obj file
-    tinyobj::attrib_t attrib;
-    vector<tinyobj::shape_t> shapes;
-    vector<tinyobj::material_t> materials;
-
-    QFileInfo info(QString(path.c_str()));
-    string err;
-    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &err,
-                                info.absoluteFilePath().toStdString().c_str(),
-                                (info.absolutePath().toStdString() + "/").c_str(), true);
-    if (!err.empty()) {
-        cerr << err << endl;
+    // Just read the first four vertices lol
+    ifstream ifs(path);
+    string line;
+    vector<Vector3d> verts;
+    while (ifs >> line) {
+        double v0, v1, v2;
+        sscanf(line.c_str(), "v %lf %lf %lf", &v0, &v1, &v2);
+        verts.emplace_back(v0, v1, v2);
     }
-
-    if (!ret) {
-        cerr << "Failed to load/parse .obj file" << endl;
-        exit(1);
-    }
-
-    // Convert the tinyobj info into vertices; we don't care about faces for planes
-    set<Vector3d> verts_set;
-    for (size_t i = 0; i < attrib.vertices.size(); i += 3) {
-        verts_set.emplace(attrib.vertices[i], attrib.vertices[i + 1], attrib.vertices[i + 2]);
-    }
-
-    vector<Vector3d> verts(verts_set.begin(), verts_set.end());
-
     // Construct and return a mesh from the vertices
     return Plane(verts[0], verts[1], verts[2], verts[3]);
 }
