@@ -1,13 +1,16 @@
 #include <QApplication>
 #include <QScreen>
 #include <QSurfaceFormat>
+#include <chrono>
 #include <cstdlib>
 #include <ctime>
 #include <string_view>
 
 #include "mainwindow.h"
 
-const std::string MESH_FILE = "meshes/cactus.obj";
+using namespace std::chrono;
+
+const std::string MESH_FILE = "meshes/teapot.obj";
 
 const std::string OUT_DIR = "out/";
 
@@ -22,11 +25,6 @@ int main(int argc, char *argv[]) {
     // Get concave edges, then print their triangles
     auto c_edges = m.get_concave_edges();
     cout << "Number of concave edges: " << c_edges.size() << endl;
-    for (auto &&e : c_edges) {
-        auto [tri1, tri2] = m.m_edge_tris[e];
-        print_triangle(tri1);
-        print_triangle(tri2);
-    }
 
     // Get the cutting planes for the first concave edge
     auto c_planes = m.get_cutting_planes(c_edges[0], 3);
@@ -36,8 +34,14 @@ int main(int argc, char *argv[]) {
         c_planes[i].save_to_file(out_file);
     }
 
-    // Cut along the first
+    cout << "starting cut...\n";
+    auto t1 = chrono::high_resolution_clock::now();
     auto frags = m.cut_plane(c_planes[0]);
+    auto t2 = chrono::high_resolution_clock::now();
+    /* Getting number of milliseconds as an integer. */
+    auto ms_int = chrono::duration_cast<chrono::milliseconds>(t2 - t1);
+    cout << ms_int.count() << "ms\n";
+
     cout << frags.size() << endl;
     for (int i = 0; i < frags.size(); i++) {
         string out_file = OUT_DIR + "frag" + to_string(i) + ".obj";

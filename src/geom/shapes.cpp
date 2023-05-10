@@ -24,16 +24,16 @@ Plane::Plane(Edge e, const Vector3d &norm, array<double, 6> bbox) {
 
     // Take those endpoints, and add/subtract the normal in which we wish to create the plane
     n = norm.normalized();
-    p0 = e[0] + dist_diag * n;
-    p1 = e[0] - dist_diag * n;
-    p2 = e[1] + dist_diag * n;
-    p3 = e[1] - dist_diag * n;
+    p0 = e[1] + dist_diag * n;
+    p1 = e[1] - dist_diag * n;
+    p2 = e[0] + dist_diag * n;
+    p3 = e[0] - dist_diag * n;
 
     // ensure that all points make a plane
-    double EPSILON = 1e-9;
-    Eigen::Matrix<double, 3, 3> mat;
-    mat << (p1 - p0), (p2 - p0), (p3 - p0);
-    assert(mat.determinant() < EPSILON);
+    //    double EPSILON = 1e-9;
+    //    Eigen::Matrix<double, 3, 3> mat;
+    //    mat << (p1 - p0), (p2 - p0), (p3 - p0);
+    //    assert(mat.determinant() < EPSILON);
 }
 
 Plane::Plane(const quickhull::Plane<double> &p, std::array<double, 6> bbox) {

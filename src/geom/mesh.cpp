@@ -39,10 +39,6 @@ Mesh::Mesh(std::vector<Eigen::Vector3d> verts, std::vector<Eigen::Vector3i> tris
             this->m_edge_tris[e][this->m_edge_tris.contains(e) ? 1 : 0] = tri;
         }
     }
-
-    // should have 1.5e = f?
-    cout << "Num edges: " << this->m_edge_tris.size()
-         << "\tNum triangles: " << this->m_triangles.size() << endl;
 }
 
 array<Edge, 3> Mesh::get_triangle_edges(const Vector3i &tri) const {
@@ -162,18 +158,19 @@ vector<Plane> Mesh::get_cutting_planes(const Edge &concave_edge, int k) {
     return res;
 }
 
-vector<Mesh> Mesh::cut_plane(quickhull::Plane<double> &p) {
+vector<Mesh> Mesh::cut_plane(quickhull::Plane<double> &p) const {
     Plane bound_plane = Plane(p, this->bounding_box());
     return cut_plane(bound_plane);
 }
 
-std::vector<Mesh> Mesh::cut_plane(Plane &p) {
+std::vector<Mesh> Mesh::cut_plane(Plane &p) const {
+    auto round = [](double d) { return std::ceil(d * 1e5) / 1e5; };
     auto [p0, p1, p2, p3] = p.bounds();
 
-    double cutMeshVertices[] = {p0.x(), p0.y(), p0.z(),   // p0
-                                p1.x(), p1.y(), p1.z(),   // p1
-                                p2.x(), p2.y(), p2.z(),   // p2
-                                p3.x(), p3.y(), p3.z()};  // p3
+    double cutMeshVertices[] = {round(p0.x()), round(p0.y()), round(p0.z()),   // p0
+                                round(p1.x()), round(p1.y()), round(p1.z()),   // p1
+                                round(p2.x()), round(p2.y()), round(p2.z()),   // p2
+                                round(p3.x()), round(p3.y()), round(p3.z())};  // p3
 
     uint32_t cutMeshFaces[] = {1, 2, 0, 1, 3, 2};
 
@@ -188,7 +185,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) {
     int i = 0;
     for (const Vector3d &v : m_verts) {
         for (int j = 0; j < 3; j++) {
-            vertices[i++] = static_cast<double>(v[j]);
+            vertices[i++] = v[j];
         }
     }
 
@@ -196,13 +193,13 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) {
     int i2 = 0;
     for (const Vector3i &f : m_triangles) {
         for (int j = 0; j < 3; j++) {
-            faces[i++] = static_cast<uint32_t>(f[j]);
+            faces[i++] = f[j];
         }
         face_sizes[i2++] = 3;
     }
 
     McContext context = MC_NULL_HANDLE;
-    McResult err = mcCreateContext(&context, MC_NULL_HANDLE);
+    McResult err = mcCreateContext(&context, MC_DEBUG);
 
     ASSERT_NO_ERROR(err);
 
@@ -214,9 +211,9 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) {
     // ----------------
     err = mcDispatch(
         context, (MC_DISPATCH_VERTEX_ARRAY_DOUBLE | MC_DISPATCH_FILTER_CLOSED_FRAGMENTS),
-        &vertices[0], &faces[0], &face_sizes[0], n_verts, n_faces, cutMeshVertices, cutMeshFaces,
-        nullptr,  // cutMeshFaceSizes, // no need to give 'faceSizes' parameter
-                  // since cut-mesh is a triangle mesh
+        vertices.data(), faces.data(), face_sizes.data(), n_verts, n_faces, cutMeshVertices,
+        cutMeshFaces,
+        nullptr,  // no need to give 'faceSizes' parameter since cut-mesh is a triangle mesh
         numCutMeshVertices, numCutMeshFaces);
 
     ASSERT_NO_ERROR(err);
@@ -284,7 +281,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) {
         ASSERT_NO_ERROR(err);
 
         std::vector<uint32_t> faceSizes(faceIndices.size() / 3, 3);
-        printf("faces: %d\n", (int)faceSizes.size());
+        //        printf("faces: %d\n", (int)faceSizes.size());
 
         ostringstream fname;
         fname << OUT_DIR << "cc" << i << ".obj";
