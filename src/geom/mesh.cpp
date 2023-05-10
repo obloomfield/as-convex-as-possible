@@ -138,7 +138,7 @@ vector<Plane> Mesh::get_cutting_planes(const Edge& concave_edge, int k) {
     // Get Quaternions for n1 -> n2
     Quaterniond qa = Quaterniond::Identity(), qb = Quaterniond::FromTwoVectors(n1, n2);
     // slerp it k times
-    for (double t = 0, step = 1. / k; t < 1.; t += step) {
+    for (double t = 0., step = 1. / k; t < 1.; t += step) {
         auto norm = qa.slerp(t, qb) * n1;
         // Now, construct a plane from the concave edge, the norm, and the mesh's bounding box
         auto plane = Plane(concave_edge, norm, bbox);

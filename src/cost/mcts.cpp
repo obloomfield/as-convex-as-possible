@@ -1,9 +1,46 @@
 #include "mcts.h"
 
-#include <algorithm>
-#include <set>
-
 #include "cost/concavity.h"
+
+// ============ MCTS =============
+
+ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh)  {
+
+    // Create root node v0 with input mesh
+
+    TreeNode root = {.depth = 0};
+
+
+    for (int iter = 0; iter < ITERATIONS; ++iter) {
+
+
+        // TreePolicy
+        auto [root_planes, intermediate_planes] = tree_policy(&root, MAX_DEPTH);
+
+
+
+
+    }
+
+
+}
+
+
+std::pair<std::unordered_set<Plane>, TreeNode*> MCTS::tree_policy(TreeNode* v, int depth) {
+    std::unordered_set<Plane> S;
+
+
+
+
+}
+
+
+
+
+
+
+
+// ============ Greedy =============
 
 map<double, Mesh> MCTS::greedy_search(const Mesh& cur_mesh) {
     double cost = ConcavityMetric::concavity(cur_mesh);
@@ -41,7 +78,7 @@ map<double, Mesh> MCTS::greedy_search(const Mesh& cur_mesh) {
     return cost_to_mesh;
 }
 
-vector<Edge> MCTS::get_concave_edges(const Mesh& mesh) {
+vector<Edge> MCTS::get_concave_edges_greedy(const Mesh& mesh) {
     vector<Edge> concave_edges;
     for (const auto& [edge, tris] : mesh.m_edge_tris) {
         // Get the triangle points corresponding to each triangle's indices
@@ -63,7 +100,7 @@ vector<Edge> MCTS::get_concave_edges(const Mesh& mesh) {
     return concave_edges;
 }
 
-std::pair<Mesh, Mesh> MCTS::get_best_cut(const vector<Edge>& concave_edges, Mesh& m) {
+std::pair<Mesh, Mesh> MCTS::get_best_cut_greedy(const vector<Edge>& concave_edges, Mesh& m) {
     Vector3d u(0.0, 0.0, 0.0);
     std::pair<Mesh, Mesh> best_pair;
     double min_cut_score = 1e17;
