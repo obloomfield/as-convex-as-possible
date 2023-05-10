@@ -14,40 +14,69 @@ class Triangle;
 class Edge;
 
 // Forward declare; will be defined in utils.h
+bool approx(double x, double y);
 double dist(const Eigen::Vector3d &a, const Eigen::Vector3d &b);
 double dist_pt2edge(const Eigen::Vector3d &pt, const Edge &e);
 double dist_pt2tri(const Eigen::Vector3d &pt, const Triangle &tri);
 
 class Plane {
- private:
+ public:
     Eigen::Vector3d p0;
     Eigen::Vector3d p1;
     Eigen::Vector3d p2;
     Eigen::Vector3d p3;
 
  public:
-    Plane(); // default constructor (all 0s)
+
+    Plane() = default;
 
     Plane(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c, Eigen::Vector3d d) {
         p0 = a, p1 = b, p2 = c, p3 = d;
+
         // ensure that all points make a plane
-        double EPSILON = 1e-9;
-        Eigen::Matrix<double, 3, 3> mat;
-        mat << (p1 - p0), (p2 - p0), (p3 - p0);
-        assert(mat.determinant() < EPSILON);
+        //        double EPSILON = 1e-3;
+        //        Eigen::Matrix<double, 3, 3> mat;
+        //        mat << (p1 - p0), (p2 - p0), (p3 - p0);
+        //        assert(mat.determinant() < EPSILON);
+    }
+
+    Plane(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c) {
+        // IMPORTANT:
+        // assumes:
+        // a --- b
+        // |
+        // |
+        // c
+        //  .. neighborhood relationship of vertices
+        // may often be better to use 4-point constructor
+
+        p0 = a, p1 = b, p2 = c, p3 = b + c - a;
+
+        //        double EPSILON = 1e-9;
+        //        Eigen::Matrix<double, 3, 3> mat;
+        //        mat << (p1 - p0), (p2 - p0), (p3 - p0);
+        //        assert(approx(mat.determinant(), 0.0));
     }
 
     Plane(Edge e, const Eigen::Vector3d &norm, std::array<double, 6> bbox);
     Plane(const quickhull::Plane<double> &p, std::array<double, 6> bbox);
 
-    std::tuple<Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d, Eigen::Vector3d> bounds() {
-        return std::make_tuple(p0, p1, p2, p3);
-    }
+    std::array<Eigen::Vector3d, 4> bounds() { return {p0, p1, p2, p3}; }
 
     // For helpful intermediate step visualizations
     static Plane load_from_file(const std::string &path);
     void save_to_file(const std::string &path);
 };
+
+namespace std {
+template <>
+struct hash<Plane> {
+    size_t operator()(const Plane &p) const {
+        // TODO: implement
+        return 0;
+    }
+};
+}  // namespace std
 
 class Triangle {
  public:

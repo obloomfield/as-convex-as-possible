@@ -94,13 +94,22 @@ std::pair<std::vector<Plane>, TreeNode*> MCTS::tree_policy(TreeNode* v, int max_
         }
     }
 
+=======
+    TreeNode root = {.depth = 0};
+
+    for (int iter = 0; iter < ITERATIONS; ++iter) {
+        // TreePolicy
+        auto [root_planes, intermediate_planes] = tree_policy(&root, MAX_DEPTH);
+    }
+
+    return {};
 }
 
-
-
-
-
-
+std::pair<std::unordered_set<Plane>, TreeNode*> MCTS::tree_policy(TreeNode* v, int depth) {
+    //    std::unordered_set<Plane> S;
+    return {};
+>>>>>>> 657faa1d851290492430d6a0cedcad6960b2054f
+}
 
 // ============ Greedy =============
 
@@ -115,7 +124,7 @@ map<double, Mesh> MCTS::greedy_search(const Mesh& cur_mesh) {
         Mesh worst_mesh = it->second;
 
         // Get all concave edges of the worst shape, sorted from furthest to closest distance to CH
-        vector<Edge> concave_edges = get_concave_edges_greedy(worst_mesh);
+        vector<Edge> concave_edges = worst_mesh.get_concave_edges();
         deque<Edge> sorted_concave_edges =
             ConcavityMetric::sort_concave_edges(worst_mesh, concave_edges);
 
