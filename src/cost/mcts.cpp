@@ -8,7 +8,7 @@
 
 static std::default_random_engine rng_eng = std::default_random_engine {};
 
-ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh)  {
+std::pair<Mesh*, Mesh*> MCTS::MCTS_search(const Mesh& cur_mesh)  {
 
     // Create root node v0 with input mesh
     double cost = ConcavityMetric::concavity(cur_mesh); // TODO: might need to switch to the R_v concavity
@@ -38,22 +38,28 @@ ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh)  {
     }
 
     // for all children of v_0, choose the TreeNode with the highest Q score
-    // grab handle on its ComponentsQueue (before its destroyed later)
+    // grab handle on the Mesh resulting from the plane cut (before its destroyed later)
     double max_q = -std::numeric_limits<double>::infinity();
-    ComponentsQueue best_cut_q;
+    Mesh* cut_l = nullptr;
+    Mesh* cut_r = nullptr;
     for (auto& tn : root->child_cuts) {
         // find better child
         if (tn->q > max_q) {
             // replace
             max_q = tn->q;
-            best_cut_q = tn->C;
+            cut_l = tn->cut_l;
+            cut_r = tn->cut_r;
         }
     }
 
     // TODO: destroy the tree
 
-    // return that ComponentsQueue
-    return best_cut_q;
+    // assertion that meshes exist
+    if (!cut_l || !cut_r)
+        throw std::runtime_error("PANIC: no meshes after cut");
+
+    // return the meshes after cut
+    return {cut_l, cut_r};
 
 }
 
@@ -106,11 +112,14 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
                 C_prime.erase(C_prime.rbegin()->first);
 
                 // compute concavity for new meshes and add to queue
-                C_prime[ConcavityMetric::concavity(components[0])] = new Mesh(components[0]); // TODO: SHARED POINTER
-                C_prime[ConcavityMetric::concavity(components[1])] = new Mesh(components[1]); // TODO: SHARED POINTER
+                Mesh* m0 = new Mesh(components[0]);
+                Mesh* m1 = new Mesh(components[1]);
+                C_prime[ConcavityMetric::concavity(components[0])] = m0; // TODO: SHARED POINTER
+                C_prime[ConcavityMetric::concavity(components[1])] = m1; // TODO: SHARED POINTER
 
                 // create new tree node
                 TreeNode* v_prime = new TreeNode(C_prime, curr_v->depth + 1, untried_plane, curr_v->candidate_planes, curr_v, rng_eng);
+                v_prime->set_newly_cut_pieces(m0, m1);
 
                 // add tree to children of curr_v
                 curr_v->child_cuts.push_back(v_prime);

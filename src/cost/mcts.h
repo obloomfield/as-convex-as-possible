@@ -39,6 +39,8 @@ struct TreeNode {
     const Mesh* c_star = nullptr;
     std::vector<Plane> candidate_planes; // candidate planes for c_star
 
+    Mesh* cut_l = nullptr;
+    Mesh* cut_r = nullptr;
 
     // FUNCTIONS
 
@@ -112,6 +114,12 @@ struct TreeNode {
         return children_count == candidate_planes.size();
     }
 
+    // sets the new components resulting from the plane cut prev_cut_plane
+    void set_newly_cut_pieces(Mesh* m0, Mesh* m1) {
+        cut_l = m0;
+        cut_r = m1;
+    }
+
     // TODO: destroy this node's children, and then destroy itself.
     void free_node() {
 
@@ -123,7 +131,7 @@ struct TreeNode {
 
 class MCTS {
  public:
-    static ComponentsQueue MCTS_search(const Mesh& cur_mesh);
+    static std::pair<Mesh*, Mesh*> MCTS_search(const Mesh& cur_mesh);
     static map<double, Mesh> greedy_search(const Mesh& cur_mesh);
 
  private:
@@ -131,7 +139,6 @@ class MCTS {
     static std::pair<TreeNode*, double> tree_policy(TreeNode* v, int max_depth);
     static double default_policy(TreeNode* v, int max_depth);
     static void backup(TreeNode* v, double _q);
-    // TODO QUALITY??
 
     // greedy
     static vector<Edge> get_concave_edges_greedy(const Mesh& mesh);
