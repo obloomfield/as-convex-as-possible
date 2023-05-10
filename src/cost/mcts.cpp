@@ -13,7 +13,9 @@ ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh)  {
     ComponentsQueue root_C;
     root_C[cost] = new Mesh(cur_mesh); // TODO: NEED SHARED POINTERS HERE!!!!!!
 
-    std::vector<Plane> TEMP; // TODO: replace this with initial candidates
+    // TODO: replace this with initial candidates from mesh
+    std::vector<Plane> TEMP;
+
     // create v_0 root tree node
     TreeNode* root = new TreeNode(root_C, 0, TEMP, rng_eng);
 
@@ -25,15 +27,22 @@ ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh)  {
 
         // DefaultPolicy
 
+        // Quality
+        auto _q = 1.; // TEMP QUALITY
+
         // Backup
-
-
-
+        backup(v_l, _q);
     }
+
+    // for all children of v_0, choose the TreeNode with the highest Q score
+    // grab handle on its ComponentsQueue (before its destroyed later)
 
 
     // destroy the tree
 
+    // return that ComponentsQueue
+
+    return {};
 
 }
 
@@ -102,7 +111,10 @@ std::pair<std::vector<Plane>, TreeNode*> MCTS::tree_policy(TreeNode* v, int max_
 }
 
 
-
+// TODO: IMPLEMENT THIS
+std::pair<std::vector<Plane>, double> MCTS::default_policy(TreeNode* v, int max_depth) {
+    return {{}, {}};
+}
 
 
 void MCTS::backup(TreeNode* v, double _q) {
