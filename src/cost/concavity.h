@@ -11,7 +11,7 @@
 #include "geom/mesh.h"
 #include "nanoflann.h"
 
-#define k 0.3
+#define K 0.3
 #define POINTS_PER_UNIT_AREA 3000
 
 class ConcavityMetric {
@@ -49,6 +49,9 @@ class ConcavityMetric {
      */
     static std::deque<Edge> sort_concave_edges(const Mesh& S,
                                                const std::vector<Edge>& concave_edges);
+
+    static std::deque<EdgeIndices> sort_concave_edge_indices(
+        const Mesh& S, const vector<EdgeIndices>& concave_edge_indices);
 
  private:
     /**

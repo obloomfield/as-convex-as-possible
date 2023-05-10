@@ -29,32 +29,53 @@ map<double, Mesh> MCTS::greedy_search(const Mesh& cur_mesh) {
     map<double, Mesh> cost_to_mesh;
     cost_to_mesh[cost] = cur_mesh;
 
+    int i = 0;
     while (cost_to_mesh.size() > 0 && cost_to_mesh.size() < MAX_NUM_PIECES) {
+        DEBUG_MSG("On iteration " << i++);
         // Find the Mesh with the worst (i.e. highest) concavity score
-        auto it = cost_to_mesh.rbegin();
+        auto it = std::prev(cost_to_mesh.end());
         Mesh worst_mesh = it->second;
 
         // Get all concave edges of the worst shape, sorted from furthest to closest distance to CH
-        vector<Edge> concave_edges = worst_mesh.get_concave_edges();
-        deque<Edge> sorted_concave_edges =
-            ConcavityMetric::sort_concave_edges(worst_mesh, concave_edges);
+        vector<EdgeIndices> concave_edge_indices = worst_mesh.get_concave_edges();
+        cout << "num concave edges: " << concave_edge_indices.size() << endl;
+
+        // if no concave edges, we're done
+        if (concave_edge_indices.empty()) {
+            cout << "worst mesh is convex!\n";
+            break;
+        }
+
+        // Sort by furthest distance from CH
+        deque<EdgeIndices> sorted_concave_edge_indices =
+            ConcavityMetric::sort_concave_edge_indices(worst_mesh, concave_edge_indices);
 
         // trim down number of concave edges
-        vector<Edge> selected_concave_edges(MAX_NUM_EDGES);
-        for (auto i = 0; i < MAX_NUM_EDGES && !sorted_concave_edges.empty(); i++) {
-            selected_concave_edges[i] = sorted_concave_edges.front();
-            sorted_concave_edges.pop_front();
+        vector<EdgeIndices> selected_concave_edge_indices;
+        selected_concave_edge_indices.reserve(MAX_NUM_EDGES);
+        for (auto i = 0; i < MAX_NUM_EDGES && !sorted_concave_edge_indices.empty(); i++) {
+            selected_concave_edge_indices.push_back(sorted_concave_edge_indices.front());
+            sorted_concave_edge_indices.pop_front();
         }
 
         // Get the best cut, remove the old Mesh, then insert the new fragments
-        auto [frag1, frag2] = get_best_cut_greedy(selected_concave_edges, worst_mesh);
-        cost_to_mesh.erase(it->first);
+        auto [frag_costs, cuts] = get_best_cut_greedy(selected_concave_edge_indices, worst_mesh);
+        cost_to_mesh.erase(it);
 
-        double frag1_cost = ConcavityMetric::concavity(frag1);
-        double frag2_cost = ConcavityMetric::concavity(frag2);
+        int cnt = 0;
+        for (auto&& p : cuts) {
+            p.save_to_file("out/iter" + to_string(i) + "plane" + to_string(cnt++) + ".obj");
+        }
+        for (auto& [cost, m] : frag_costs) {
+            if (cost_to_mesh.contains(cost)) DEBUG_MSG(cost << " already exists in map");
+            cost_to_mesh[cost] = m;
+        }
+        cnt = 0;
+        for (auto& [_, m] : cost_to_mesh) {
+            m.save_to_file("out/iter" + to_string(i) + "mesh" + to_string(cnt++) + ".obj");
+        }
 
-        cost_to_mesh[frag1_cost] = frag1;
-        cost_to_mesh[frag2_cost] = frag2;
+        DEBUG_MSG("currently have " << cost_to_mesh.size() << " fragments");
     }
 
     return cost_to_mesh;
@@ -62,11 +83,12 @@ map<double, Mesh> MCTS::greedy_search(const Mesh& cur_mesh) {
 
 vector<Edge> MCTS::get_concave_edges_greedy(const Mesh& mesh) {
     vector<Edge> concave_edges;
-    for (const auto& [edge, tris] : mesh.m_edge_tris) {
+    for (const auto& [ei, tris] : mesh.m_edge_tris) {
         // Get the triangle points corresponding to each triangle's indices
         auto [tri1_indices, tri2_indices] = tris;
         Triangle tri1 = mesh.get_triangle(tri1_indices), tri2 = mesh.get_triangle(tri2_indices);
 
+        auto edge = mesh.get_edge(ei);
         // Get the vertices that the triangles don't share
         Vector3d v1 = get_third_point(tri1, edge), v2 = get_third_point(tri2, edge);
 
@@ -82,30 +104,55 @@ vector<Edge> MCTS::get_concave_edges_greedy(const Mesh& mesh) {
     return concave_edges;
 }
 
-std::pair<Mesh, Mesh> MCTS::get_best_cut_greedy(const vector<Edge>& concave_edges, Mesh& m) {
+pair<map<double, Mesh>, vector<Plane>> MCTS::get_best_cut_greedy(
+    const vector<EdgeIndices>& concave_edge_indices, Mesh& m) {
     Vector3d u(0.0, 0.0, 0.0);
-    std::pair<Mesh, Mesh> best_pair;
+    map<double, Mesh> best_frags;
+    vector<Plane> best_cuts;
     double min_cut_score = 1e17;
 
-    for (const Edge& edge : concave_edges) {
-        vector<Plane> cutting_planes = m.get_cutting_planes(edge, NUM_CUTTING_PLANES);
+    for (const EdgeIndices& ei : concave_edge_indices) {
+        vector<Plane> cutting_planes = m.get_cutting_planes(ei, NUM_CUTTING_PLANES);
         for (Plane& plane : cutting_planes) {
-            vector<Mesh> frags = m.cut_plane(plane);
-            if (frags.size() != 2) {
-                continue;
-            }
-            Mesh frag_one = frags[0];
-            Mesh frag_two = frags[1];
+            map<double, Mesh> curr_costs;
 
-            // Check if the new cut has a better min cut score than the current best
-            double curr_cut_score = ConcavityMetric::concavity(frag_one) +
-                                    ConcavityMetric::concavity(frag_two) -
-                                    ConcavityMetric::concavity(m);
-            if (curr_cut_score < min_cut_score) {
-                min_cut_score = curr_cut_score;
-                best_pair = {frag_one, frag_two};
+            DEBUG_MSG("Cutting plane...");
+            vector<Mesh> frags = m.cut_plane(plane);
+            DEBUG_MSG("Done cutting");
+
+            if (frags.empty()) {
+                // If failed to cut any components, skip
+                DEBUG_MSG("Failed to cut plane along edge " << ei.ai_ << ", " << ei.bi_
+                                                            << ". Saving and continuing...");
+                for (int i = 0; i < cutting_planes.size(); i++) {
+                    cutting_planes[i].save_to_file("out/plane_failed" + to_string(i) + ".obj");
+                }
+                m.save_to_file("out/mesh_failed.obj");
+                continue;
+                exit(EXIT_FAILURE);
             }
+
+            DEBUG_MSG("Computing concavity...");
+            auto t1 = chrono::high_resolution_clock::now();
+
+            double cut_store = -1 * ConcavityMetric::concavity(m);
+
+            for (const auto& frag : frags) {
+                double cost = ConcavityMetric::concavity(frag);
+                cut_store += cost;
+                curr_costs[cost] = frag;
+            }
+
+            if (cut_store < min_cut_score) {
+                min_cut_score = cut_store;
+                best_cuts = cutting_planes;
+                best_frags = curr_costs;
+            }
+
+            auto t2 = chrono::high_resolution_clock::now();
+            DEBUG_MSG("Total time: " << chrono::duration_cast<chrono::milliseconds>(t2 - t1).count()
+                                     << "ms");
         }
     }
-    return best_pair;
+    return {best_frags, best_cuts};
 }

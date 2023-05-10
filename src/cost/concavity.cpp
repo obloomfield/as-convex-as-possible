@@ -18,6 +18,41 @@ double ConcavityMetric::concavity(const Mesh& S) {
     return max(rv, hb);
 }
 
+deque<EdgeIndices> ConcavityMetric::sort_concave_edge_indices(
+    const Mesh& S, const vector<EdgeIndices>& concave_edge_indices) {
+    // Here, we iterate through each of the triangles of the convex hull CH, and compute the
+    // shortest distance between the edge and that triangle.
+    //
+    // A KDTree could be utilized here if there are sufficiently many concave edges, but here we
+    // assume len(concave_edges) << len(M.verts), so KDTree construction would be too expensive
+    // (O(nlogn) vs. O(kn), where k = len(concave_edges)).
+
+    // Map distances to edges; keeps in order for later
+    map<double, EdgeIndices> edge_dists;
+    Mesh CH = S.computeCH();
+
+    // Find shortest distance from edge to the convex hull:
+    for (auto&& ei : concave_edge_indices) {
+        auto e = CH.get_edge(ei);
+        double shortest = DMAX;
+        // for each concave edge, check distance to each of the triangles in the convex hull
+        for (auto&& tri_i : CH.m_triangles) {
+            auto tri = CH.get_triangle(tri_i);
+            auto d = e.dist_to(tri);
+            if (d < shortest) shortest = d;
+        }
+        edge_dists[shortest] = ei;
+    }
+
+    deque<EdgeIndices> res;
+    // the map should maintain min sorting here, so push each to the front
+    for (auto& [_, ei] : edge_dists) {
+        res.push_front(ei);
+    }
+
+    return res;
+}
+
 deque<Edge> ConcavityMetric::sort_concave_edges(const Mesh& S, const vector<Edge>& concave_edges) {
     // Here, we iterate through each of the triangles of the convex hull CH, and compute the
     // shortest distance between the edge and that triangle.
@@ -58,7 +93,7 @@ double ConcavityMetric::R_v(const Mesh& S) {
     auto v1 = S.volume(), v2 = CH_S.volume();
 
     // Compute R_v
-    double d = k * pow(3 * abs(v2 - v1) / (4 * M_PI), 1. / 3);
+    double d = K * pow(3 * abs(v2 - v1) / (4 * M_PI), 1. / 3);
     return d;
 }
 
@@ -106,7 +141,8 @@ double ConcavityMetric::hausdorff_distance(const Mesh& A, const Mesh& B) {
     // Helper function to compute d(a, B) or d(b, A)
     // - M the mesh that the sample pt came from
     // - kdt the KDTree of the *other* mesh (so if M = A, kdt = B_KDTree)
-    auto compute_d = [](const Mesh& M, const Vector3d& pt, VecKDTree& kdt) {
+    auto compute_d = [](const Mesh& M, const Vector3d& pt, VecKDTree& kdt,
+                        const vector<int>& tri_indices, const Mesh& other) {
         // Do KNN search; here we limit to 10
         constexpr size_t n_results = 10;
         // Map out results to their corresponding indices in the sample vector
@@ -120,12 +156,20 @@ double ConcavityMetric::hausdorff_distance(const Mesh& A, const Mesh& B) {
 
         // Search B for nearest neighbors to a!
         array<double, 3> query_vert{pt[0], pt[1], pt[2]};
-        kdt.index->findNeighbors(result_set, &query_vert[0]);
+        auto ret = kdt.index->findNeighbors(result_set, &query_vert[0]);
+        if (!ret) {
+            DEBUG_MSG("knn find neighbors failed, num sampled points: " << tri_indices.size());
+            DEBUG_MSG("Defaulting to surrogate-based volume computation...");
+            //                    other.save_to_file("out/knn_failed_mesh.obj");
+            //                    exit(EXIT_FAILURE);
+            // If KNN fails, default to Rv
+            return DMAX;
+        }
 
         double shortest = DMAX;
         for (size_t i = 0; i < n_results; i++) {
             // Get the corresponding triangle of the result sampled vertex
-            auto tri = M.m_triangles[ret_indices[i]];
+            auto tri = M.m_triangles[tri_indices[ret_indices[i]]];
             array<Vector3d, 3> tri_pts = {M.m_verts[tri[0]], M.m_verts[tri[1]], M.m_verts[tri[2]]};
 
             // Compute distance from a to the triangle, and see if smaller than current min
@@ -149,14 +193,14 @@ double ConcavityMetric::hausdorff_distance(const Mesh& A, const Mesh& B) {
     // Compute sup d(a, B)
     for (auto&& a : A_samples) {
         // Compute d(a, B)
-        auto shortest = compute_d(A, a, B_kdt);
+        auto shortest = compute_d(A, a, B_kdt, B_sample_tris, B);
         // Update Hausdorff distance, if applicable
         if (shortest > h) h = shortest;
     }
 
     // Compute sup d(b, A)
     for (auto&& b : B_samples) {
-        auto shortest = compute_d(B, b, A_kdt);
+        auto shortest = compute_d(B, b, A_kdt, A_sample_tris, A);
         // Update Hausdorff distance, if applicable
         if (shortest > h) h = shortest;
     }
