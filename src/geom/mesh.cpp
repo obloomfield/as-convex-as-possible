@@ -148,12 +148,12 @@ vector<Plane> Mesh::get_cutting_planes(const Edge& concave_edge, int k) {
     return res;
 }
 
-vector<Mesh> Mesh::cut_plane(quickhull::Plane<double>& p) {
+vector<Mesh> Mesh::cut_plane(quickhull::Plane<double>& p) const {
     Plane bound_plane = Plane(p, this->bounding_box());
     return cut_plane(bound_plane);
 }
 
-std::vector<Mesh> Mesh::cut_plane(Plane& p) {
+std::vector<Mesh> Mesh::cut_plane(Plane& p) const {
     auto [p0, p1, p2, p3] = p.bounds();
 
     double cutMeshVertices[] = {p0.x(), p0.y(), p0.z(), p1.x(), p1.y(), p1.z(),

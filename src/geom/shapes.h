@@ -26,6 +26,8 @@ class Plane {
     Eigen::Vector3d p3;
 
  public:
+    Plane(); // default constructor (all 0s)
+
     Plane(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c, Eigen::Vector3d d) {
         p0 = a, p1 = b, p2 = c, p3 = d;
         // ensure that all points make a plane

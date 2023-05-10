@@ -66,8 +66,8 @@ class Mesh {
     std::vector<Plane> get_cutting_planes(const Edge &concave_edge, int k);
 
     // Cut the mesh with the specified cutting plane.
-    std::vector<Mesh> cut_plane(Plane &p);
-    std::vector<Mesh> cut_plane(quickhull::Plane<double> &p);
+    std::vector<Mesh> cut_plane(Plane &p) const;
+    std::vector<Mesh> cut_plane(quickhull::Plane<double> &p) const;
 
     std::array<double, 6> bounding_box() const { return m_bbox; };
 
