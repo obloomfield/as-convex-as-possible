@@ -216,7 +216,7 @@ vector<Mesh> Mesh::cut_plane(quickhull::Plane<double> &p) const {
 }
 
 std::vector<Mesh> Mesh::cut_plane(Plane &p) const {
-    auto round = [](double d) { return std::round(d * 1e4) / 1e4; };
+    auto round = [](double d) { return std::round(d * 1e3) / 1e3; };
     auto [p0, p1, p2, p3] = p.bounds();
 
     double cutMeshVertices[] = {round(p0.x()), round(p0.y()), round(p0.z()),   // p0

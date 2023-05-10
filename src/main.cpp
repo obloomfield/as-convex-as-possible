@@ -19,6 +19,12 @@ const std::string OUT_DIR = "out/";
 int main(int argc, char *argv[]) {
     srand(static_cast<unsigned>(time(0)));
 
+    //    for (int i = 0; i < 17; i++) {
+    //        Mesh::load_from_file("out/iter13mesh" + to_string(i) + ".obj")
+    //            .computeCH()
+    //            .save_to_file("out/finalfrag" + to_string(i) + ".obj");
+    //    }
+
     cout << "starting mesh load...\n";
     auto t1 = chrono::high_resolution_clock::now();
 
