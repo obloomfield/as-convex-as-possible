@@ -35,6 +35,23 @@ class Plane {
         assert(mat.determinant() < EPSILON);
     }
 
+    Plane(Eigen::Vector3d a,  Eigen::Vector3d b, Eigen::Vector3d c) {
+        // IMPORTANT:
+        // assumes:
+        // a --- b
+        // |
+        // |
+        // c
+        //  .. neighborhood relationship of vertices
+        // may often be better to use 4-point constructor
+
+        p0 = a, p1 = b, p2 = c, p3 = b+c-a;
+        double EPSILON = 1e-9;
+        Eigen::Matrix<double, 3, 3> mat;
+        mat << (p1 - p0), (p2 - p0), (p3 - p0);
+        assert(mat.determinant() < EPSILON);
+    }
+
     Plane(Edge e, const Eigen::Vector3d &norm, std::array<double, 6> bbox);
     Plane(const quickhull::Plane<double> &p, std::array<double, 6> bbox);
 
