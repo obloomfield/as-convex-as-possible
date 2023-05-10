@@ -13,11 +13,11 @@ ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh)  {
     ComponentsQueue root_C;
     root_C[cost] = new Mesh(cur_mesh); // TODO: NEED SHARED POINTERS HERE!!!!!!
 
-    // TODO: replace this with initial candidates from mesh
-    std::vector<Plane> TEMP;
+    // initial candidates from mesh
+    std::vector<Plane> candidate_planes = cur_mesh.get_axis_aligned_planes(NUM_CUTTING_PLANES);
 
     // create v_0 root tree node
-    TreeNode* root = new TreeNode(root_C, 0, TEMP, rng_eng);
+    TreeNode* root = new TreeNode(root_C, 0, candidate_planes, rng_eng);
 
     // run search for ITERATIONS
     for (int t = 0; t < ITERATIONS; ++t) {

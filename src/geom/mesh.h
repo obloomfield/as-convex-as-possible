@@ -64,7 +64,7 @@ class Mesh {
 
     // Get k cutting planes for the mesh along a concave edge, from one triangle to another.
     std::vector<Plane> get_cutting_planes(const Edge &concave_edge, int k);
-    vector<Plane> get_axis_aligned_planes(int k); // axis aligned version for MCTS
+    vector<Plane> get_axis_aligned_planes(int k) const; // axis aligned version for MCTS
 
     // Cut the mesh with the specified cutting plane.
     std::vector<Mesh> cut_plane(Plane &p) const;

@@ -135,7 +135,7 @@ double Mesh::volume() const {
 
 //
 double MIN_INTERVAL = 0.01;
-vector<Plane> Mesh::get_axis_aligned_planes(int k) {
+vector<Plane> Mesh::get_axis_aligned_planes(int k) const {
     // k: number of cuts per each axis
     auto [a,b,c,x,y,z] = this->bounding_box();
     Vector3d minBounds(a,b,c);
