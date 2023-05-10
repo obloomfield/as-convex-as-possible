@@ -128,8 +128,8 @@ class MCTS {
 
  private:
     // MCTS
-    static std::pair<std::vector<Plane>, TreeNode*> tree_policy(TreeNode* v, int max_depth);
-    static std::pair<std::vector<Plane>, double> default_policy(TreeNode* v, int max_depth);
+    static std::pair<TreeNode*, double> tree_policy(TreeNode* v, int max_depth);
+    static double default_policy(TreeNode* v, int max_depth);
     static void backup(TreeNode* v, double _q);
     // TODO QUALITY??
 
