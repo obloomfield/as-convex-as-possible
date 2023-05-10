@@ -39,13 +39,21 @@ ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh)  {
 
     // for all children of v_0, choose the TreeNode with the highest Q score
     // grab handle on its ComponentsQueue (before its destroyed later)
+    double max_q = -std::numeric_limits<double>::infinity();
+    ComponentsQueue best_cut_q;
+    for (auto& tn : root->child_cuts) {
+        // find better child
+        if (tn->q > max_q) {
+            // replace
+            max_q = tn->q;
+            best_cut_q = tn->C;
+        }
+    }
 
-
-    // destroy the tree
+    // TODO: destroy the tree
 
     // return that ComponentsQueue
-
-    return {};
+    return best_cut_q;
 
 }
 
