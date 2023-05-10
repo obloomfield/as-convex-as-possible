@@ -14,7 +14,7 @@ ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh)  {
     root_C[cost] = new Mesh(cur_mesh); // TODO: NEED SHARED POINTERS HERE!!!!!!
 
     // initial candidates from mesh
-    std::vector<Plane> candidate_planes = cur_mesh.get_axis_aligned_planes();
+    std::vector<Plane> candidate_planes = cur_mesh.get_axis_aligned_planes(NUM_CUTTING_PLANES);
 
     // create v_0 root tree node
     TreeNode* root = new TreeNode(root_C, 0, candidate_planes, rng_eng);
