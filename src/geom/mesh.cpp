@@ -148,13 +148,13 @@ vector<Plane> Mesh::get_axis_aligned_planes(int k) {
         res.push_back(p);
     }
     interval = max(MIN_INTERVAL, abs(bbox[2] - bbox[3]) / ((double)k+1));
-    for (double i = bbox[0] + interval; i <= bbox[1] - interval; i+=interval) {
+    for (double i = bbox[2] + interval; i <= bbox[3] - interval; i+=interval) {
         Vector3d norm(0.0, 1.0, 0.0);
         Plane p(norm,-i,bbox);
         res.push_back(p);
     }
     interval = max(MIN_INTERVAL, abs(bbox[4] - bbox[5]) / ((double)k+1));
-    for (double i = bbox[0] + interval; i <= bbox[1] - interval; i+=interval) {
+    for (double i = bbox[4] + interval; i <= bbox[5] - interval; i+=interval) {
         Vector3d norm(0.0, 0.0, 1.0);
         Plane p(norm,-i,bbox);
         res.push_back(p);
