@@ -44,28 +44,31 @@ Plane::Plane(const Eigen::Vector3d &norm, double d, std::array<double, 6> bbox) 
     // Get diagonal distance between bounding box
     double dist_diag = dist(minCoords, maxCoords);
 
+    // compute the center of the bounding box
+    Eigen::Vector3d center = 0.5 * (minCoords + maxCoords);
+
     // Compute a unit vector in the direction of the normal vector
     Eigen::Vector3d normal = norm.normalized();
 
-    // Choose any three points from the given set to form a triangle
-    Eigen::Vector3d base = p0;
-    Eigen::Vector3d edge1 = p1 - p0;
-    Eigen::Vector3d edge2 = p2 - p0;
+    // Compute a vector perpendicular to the normal vector
+    Eigen::Vector3d v1 = normal.unitOrthogonal();
 
-    // Compute the normal of the triangle using the cross product of two of its edges
-    Eigen::Vector3d triangleNormal = edge1.cross(edge2).normalized();
+    // Compute another vector perpendicular to both the normal vector and v1
+    Eigen::Vector3d v2 = normal.cross(v1).normalized();
 
-    // Compute the distance from the origin to the plane using the given d value
-    double distance = std::abs(d / triangleNormal.norm());
+    // Compute the four points that define the plane
+    p0 = center + v1 * dist_diag / 2 + v2 * dist_diag / 2;
+    p1 = center - v1 * dist_diag / 2 + v2 * dist_diag / 2;
+    p2 = center + v1 * dist_diag / 2 - v2 * dist_diag / 2;
+    p3 = center - v1 * dist_diag / 2 - v2 * dist_diag / 2;
 
-    // Compute the fourth point on the plane by adding the scaled normal vector to the base point
-    Eigen::Vector3d fourthPoint = base + distance * normal;
 
-    // Assign the four points to the class members p0, p1, p2, and p3
-    p0 = base + normal * dist_diag;
-    p1 = base - normal * dist_diag;
-    p2 = fourthPoint - normal * dist_diag;
-    p3 = fourthPoint + normal * dist_diag;
+    // Translate the plane along its normal vector by the given distance
+    Eigen::Vector3d translation = d * normal;
+    p0 += translation;
+    p1 += translation;
+    p2 += translation;
+    p3 += translation;
 }
 
 Plane::Plane(const quickhull::Plane<double> &p, std::array<double, 6> bbox) {
