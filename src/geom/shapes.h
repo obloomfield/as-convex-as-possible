@@ -58,6 +58,7 @@ class Plane {
         //        assert(approx(mat.determinant(), 0.0));
     }
 
+    Plane(const Eigen::Vector3d &norm, double d, std::array<double, 6> bbox);
     Plane(Edge e, const Eigen::Vector3d &norm, std::array<double, 6> bbox);
     Plane(const quickhull::Plane<double> &p, std::array<double, 6> bbox);
 
