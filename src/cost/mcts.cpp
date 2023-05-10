@@ -4,23 +4,100 @@
 
 // ============ MCTS =============
 
-ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh) {
+static std::default_random_engine rng_eng = std::default_random_engine {};
+
+ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh)  {
+
     // Create root node v0 with input mesh
+    double cost = ConcavityMetric::concavity(cur_mesh); // TODO: might need to switch to the R_v concavity
+    ComponentsQueue root_C;
+    root_C[cost] = new Mesh(cur_mesh); // TODO: NEED SHARED POINTERS HERE!!!!!!
 
-    TreeNode root = {.depth = 0};
+    // create v_0 root tree node
+    TreeNode* root = new TreeNode(root_C, 0, rng_eng);
 
-    for (int iter = 0; iter < ITERATIONS; ++iter) {
+    // run search for ITERATIONS
+    for (int t = 0; t < ITERATIONS; ++t) {
+
         // TreePolicy
-        auto [root_planes, intermediate_planes] = tree_policy(&root, MAX_DEPTH);
+        auto [root_planes, intermediate_planes] = tree_policy(root, MAX_DEPTH);
+
+
+
+
     }
 
-    return {};
+
+    // destroy the tree
+
+
 }
 
-std::pair<std::unordered_set<Plane>, TreeNode*> MCTS::tree_policy(TreeNode* v, int depth) {
-    //    std::unordered_set<Plane> S;
-    return {};
+
+std::pair<std::vector<Plane>, TreeNode*> MCTS::tree_policy(TreeNode* v, int max_depth) {
+    // selected cutting planes
+    std::vector<Plane> S;
+
+    TreeNode* curr_v = v;
+
+    // from the root to the leaf
+    while (curr_v->depth < max_depth) {
+
+        // if all cutting planes of c_star are expanded
+        if (curr_v->has_expanded_all()) {
+            // get next node based on best child of v
+            TreeNode* curr_v = curr_v->get_best_child();
+
+            // error case, if children is empty when all has been expanded for some reason
+            if (curr_v == nullptr) {
+                throw std::runtime_error("PANIC: unexpected children are empty");
+            }
+
+            // add corresponding plane of curr_v to selected cutting planes
+            S.push_back(curr_v->prev_cut_plane);
+        } else {
+            // randomly select a untried cutting plane P of c_star
+            Plane untried_plane = curr_v->sample_next_candidate();
+
+            // cut c_star into c_star_l and c_star_r (potentially more) with P
+            std::vector<Mesh> components = curr_v->c_star->cut_plane(untried_plane);
+
+            // ignore cuts that result in more than 2 pieces
+            if (components.size() == 2) {
+
+                // add the cutting plane P to selected cutting planes
+                S.push_back(untried_plane);
+
+                // create new node v_prime to curr_v
+
+                // first create new components cost queue
+                ComponentsQueue C_prime(curr_v->C);
+                // erase c_star from new queue
+                C_prime.erase(C_prime.rbegin()->first);
+
+                // compute concavity for new meshes and add to queue
+                C_prime[ConcavityMetric::concavity(components[0])] = new Mesh(components[0]); // TODO: SHARED POINTER
+                C_prime[ConcavityMetric::concavity(components[1])] = new Mesh(components[1]); // TODO: SHARED POINTER
+
+                // create new tree node
+                TreeNode* v_prime = new TreeNode(C_prime, curr_v->depth + 1, untried_plane, rng_eng);
+
+                // add tree to children of curr_v
+                curr_v->child_cuts.push_back(v_prime);
+            }
+
+            // increment children count no matter what
+            ++curr_v->children_count;
+
+            // return selected planes and current tree node
+            return {S, curr_v};
+        }
+    }
+
+    return {S, curr_v};
 }
+
+
 
 // ============ Greedy =============
 

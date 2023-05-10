@@ -187,7 +187,8 @@ vector<Plane> Mesh::get_cutting_planes(const Edge &concave_edge, int k) {
     return res;
 }
 
-vector<Mesh> Mesh::cut_plane(quickhull::Plane<double> &p) const {
+
+vector<Mesh> Mesh::cut_plane(quickhull::Plane<double>& p) const {
     Plane bound_plane = Plane(p, this->bounding_box());
     return cut_plane(bound_plane);
 }
