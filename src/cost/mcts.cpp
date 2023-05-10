@@ -94,22 +94,10 @@ std::pair<std::vector<Plane>, TreeNode*> MCTS::tree_policy(TreeNode* v, int max_
         }
     }
 
-=======
-    TreeNode root = {.depth = 0};
-
-    for (int iter = 0; iter < ITERATIONS; ++iter) {
-        // TreePolicy
-        auto [root_planes, intermediate_planes] = tree_policy(&root, MAX_DEPTH);
-    }
-
-    return {};
+    return {S, curr_v};
 }
 
-std::pair<std::unordered_set<Plane>, TreeNode*> MCTS::tree_policy(TreeNode* v, int depth) {
-    //    std::unordered_set<Plane> S;
-    return {};
->>>>>>> 657faa1d851290492430d6a0cedcad6960b2054f
-}
+
 
 // ============ Greedy =============
 
