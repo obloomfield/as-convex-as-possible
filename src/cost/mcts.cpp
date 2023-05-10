@@ -4,23 +4,214 @@
 
 // ============ MCTS =============
 
-ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh) {
+// TODO: change concavity to R_v
+
+static std::default_random_engine rng_eng = std::default_random_engine {};
+
+std::pair<Mesh*, Mesh*> MCTS::MCTS_search(const Mesh& cur_mesh)  {
+
     // Create root node v0 with input mesh
+    double cost = ConcavityMetric::concavity(cur_mesh); // TODO: might need to switch to the R_v concavity
+    ComponentsQueue root_C;
+    root_C[cost] = new Mesh(cur_mesh); // TODO: NEED SHARED POINTERS HERE!!!!!!
 
-    TreeNode root = {.depth = 0};
+    // initial candidates from mesh
+    std::vector<Plane> candidate_planes = cur_mesh.get_axis_aligned_planes(NUM_CUTTING_PLANES);
 
-    for (int iter = 0; iter < ITERATIONS; ++iter) {
+    // create v_0 root tree node
+    TreeNode* root = new TreeNode(root_C, 0, candidate_planes, rng_eng);
+
+    // run search for ITERATIONS
+    for (int t = 0; t < ITERATIONS; ++t) {
+
         // TreePolicy
-        auto [root_planes, intermediate_planes] = tree_policy(&root, MAX_DEPTH);
+        auto [v_l, q_l] = tree_policy(root, MAX_DEPTH);
+
+        // DefaultPolicy
+        double q_d = default_policy(v_l, MAX_DEPTH);
+
+        // Quality
+        double quality = (q_l + q_d) / static_cast<double>(MAX_DEPTH); // average between all the highest concavities down the path
+
+        // Backup
+        backup(v_l, quality);
     }
 
-    return {};
+    // for all children of v_0, choose the TreeNode with the highest Q score
+    // grab handle on the Mesh resulting from the plane cut (before its destroyed later)
+    double max_q = -std::numeric_limits<double>::infinity();
+    Mesh* cut_l = nullptr;
+    Mesh* cut_r = nullptr;
+    for (auto& tn : root->child_cuts) {
+        // find better child
+        if (tn->q > max_q) {
+            // replace
+            max_q = tn->q;
+            cut_l = tn->cut_l;
+            cut_r = tn->cut_r;
+        }
+    }
+
+    // TODO: destroy the tree
+
+    // assertion that meshes exist
+    if (!cut_l || !cut_r)
+        throw std::runtime_error("PANIC: no meshes after cut");
+
+    // return the meshes after cut
+    return {cut_l, cut_r};
+
 }
 
-std::pair<std::unordered_set<Plane>, TreeNode*> MCTS::tree_policy(TreeNode* v, int depth) {
-    //    std::unordered_set<Plane> S;
-    return {};
+
+std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
+    // selected cutting planes
+//    std::vector<Plane> S;
+
+    TreeNode* curr_v = v;
+
+    // negative concavity for tree policy (convexity)
+    double total_concavity = 0.;
+
+    // from the root to the leaf
+    while (curr_v->depth < max_depth) {
+
+        // if all cutting planes of c_star are expanded
+        if (curr_v->has_expanded_all()) {
+            // get next node based on best child of v
+            TreeNode* curr_v = curr_v->get_best_child();
+
+            // error case, if children is empty when all has been expanded for some reason
+            if (curr_v == nullptr) {
+                throw std::runtime_error("PANIC: unexpected children are empty");
+            }
+
+            // accumulate negative concavity for the next child
+            total_concavity += -curr_v->C.rbegin()->first;
+
+            // add corresponding plane of curr_v to selected cutting planes
+//            S.push_back(curr_v->prev_cut_plane);
+        } else {
+            // randomly select a untried cutting plane P of c_star
+            Plane untried_plane = curr_v->sample_next_candidate();
+
+            // cut c_star into c_star_l and c_star_r (potentially more) with P
+            std::vector<Mesh> components = curr_v->c_star->cut_plane(untried_plane);
+
+            // ignore cuts that result in more than 2 pieces
+            if (components.size() == 2) {
+
+                // add the cutting plane P to selected cutting planes
+//                S.push_back(untried_plane);
+
+                // create new node v_prime to curr_v
+
+                // first create new components cost queue
+                ComponentsQueue C_prime(curr_v->C);
+                // erase c_star from new queue
+                C_prime.erase(C_prime.rbegin()->first);
+
+                // compute concavity for new meshes and add to queue
+                Mesh* m0 = new Mesh(components[0]);
+                Mesh* m1 = new Mesh(components[1]);
+                C_prime[ConcavityMetric::concavity(components[0])] = m0; // TODO: SHARED POINTER
+                C_prime[ConcavityMetric::concavity(components[1])] = m1; // TODO: SHARED POINTER
+
+                // create new tree node
+                TreeNode* v_prime = new TreeNode(C_prime, curr_v->depth + 1, untried_plane, curr_v->candidate_planes, curr_v, rng_eng);
+                v_prime->set_newly_cut_pieces(m0, m1);
+
+                // add tree to children of curr_v
+                curr_v->child_cuts.push_back(v_prime);
+
+                // accumulate negative concavity for new child
+                total_concavity += -C_prime.rbegin()->first;
+            }
+
+            // increment children count no matter what
+            ++curr_v->children_count;
+
+            // return selected planes and current tree node
+            return {curr_v, total_concavity};
+        }
+    }
+
+    return {curr_v, total_concavity};
 }
+
+
+double MCTS::default_policy(TreeNode* v, int max_depth) {
+    // selected cutting planes
+//    std::vector<Plane> S;
+
+    // create a copy of v's components queue
+    ComponentsQueue C_copy(v->C);
+
+    // negative concavity (convexity)
+    double total_concavity = 0.0;
+
+    for (int i = 0; i < max_depth - v->depth; ++i) {
+        auto it = C_copy.rbegin();
+        const Mesh* c_star = it->second;
+
+        // store the "best" results from cutting
+        std::vector<Mesh> best_results;
+        Plane best_direction;
+        double q_max = -std::numeric_limits<double>::infinity();
+        // concavity metrics for the two points
+        double c_m0, c_m1;
+
+        // for direction in {𝑥𝑦, 𝑥𝑧, 𝑦𝑧}
+        std::vector<Plane> directions = c_star->get_axis_aligned_planes(NUM_CUTTING_PLANES);
+        for (Plane& direction : directions) {
+            std::vector<Mesh> cut = c_star->cut_plane(direction);
+
+            // only care if cut resulted in 2 pieces
+            if (cut.size() == 2) {
+                // calculate concavity for the cut pieces
+                double curr_c_m0 = ConcavityMetric::concavity(cut[0]);
+                double curr_c_m1 = ConcavityMetric::concavity(cut[1]);
+                double curr_q = -std::max(curr_c_m0, curr_c_m1);
+                // if the negative concavity is greater than the max (most convex)
+                if (curr_q > q_max) {
+                    // save fields
+                    best_results = cut;
+                    best_direction = direction;
+                    q_max = curr_q;
+                    // save concavity scores
+                    c_m0 = curr_c_m0;
+                    c_m1 = curr_c_m1;
+                }
+            }
+        }
+
+        // at this point, have best cut pieces and plane
+        C_copy.erase(it->first); // erase c_star
+        // insert new pieces into queue
+        // TODO: shared pointers here
+        C_copy[c_m0] = new Mesh(best_results[0]);
+        C_copy[c_m1] = new Mesh(best_results[1]);
+        // add P to the selected set
+//        S.push_back(best_direction);
+
+        // accumulate total concavity
+        total_concavity += q_max;
+    }
+
+    return total_concavity;
+}
+
+
+void MCTS::backup(TreeNode* v, double _q) {
+    TreeNode* curr_v = v;
+
+    while (curr_v != nullptr) {
+        ++curr_v->visit_count; // increment visit count
+        curr_v->q = std::max(curr_v->q, _q); // update value function score
+        curr_v = curr_v->parent;
+    }
+}
+
 
 // ============ Greedy =============
 

@@ -36,6 +36,42 @@ Plane::Plane(Edge e, const Vector3d &norm, array<double, 6> bbox) {
     //    assert(mat.determinant() < EPSILON);
 }
 
+// TODO: fix the spacing, fix the missing axis
+Plane::Plane(const Eigen::Vector3d &norm, double d, std::array<double, 6> bbox) {
+    auto [a, b, c, x, y, z] = bbox;
+    Vector3d minCoords(a, b, c);
+    Vector3d maxCoords(x, y, z);
+
+    // Get diagonal distance between bounding box
+    double dist_diag = dist(minCoords, maxCoords);
+
+    // compute the center of the bounding box
+    Eigen::Vector3d center = 0.5 * (minCoords + maxCoords);
+
+    // Compute a unit vector in the direction of the normal vector
+    Eigen::Vector3d normal = norm.normalized();
+
+    // Compute a vector perpendicular to the normal vector
+    Eigen::Vector3d v1 = normal.unitOrthogonal();
+
+    // Compute another vector perpendicular to both the normal vector and v1
+    Eigen::Vector3d v2 = normal.cross(v1).normalized();
+
+    // Compute the four points that define the plane
+    p0 = center + v1 * dist_diag / 2 + v2 * dist_diag / 2;
+    p1 = center - v1 * dist_diag / 2 + v2 * dist_diag / 2;
+    p2 = center + v1 * dist_diag / 2 - v2 * dist_diag / 2;
+    p3 = center - v1 * dist_diag / 2 - v2 * dist_diag / 2;
+
+
+    // Translate the plane along its normal vector by the given distance
+    Eigen::Vector3d translation = d * normal;
+    p0 += translation;
+    p1 += translation;
+    p2 += translation;
+    p3 += translation;
+}
+
 Plane::Plane(const quickhull::Plane<double> &p, std::array<double, 6> bbox) {
     // Convert plane types
     Vector3d planeNormal(p.m_N.x, p.m_N.y, p.m_N.z);

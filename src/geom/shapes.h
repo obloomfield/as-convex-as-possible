@@ -26,7 +26,10 @@ class Plane {
     Eigen::Vector3d p2;
     Eigen::Vector3d p3;
 
+ public:
+
     Plane() = default;
+
     Plane(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c, Eigen::Vector3d d) {
         p0 = a, p1 = b, p2 = c, p3 = d;
 
@@ -55,6 +58,7 @@ class Plane {
         //        assert(approx(mat.determinant(), 0.0));
     }
 
+    Plane(const Eigen::Vector3d &norm, double d, std::array<double, 6> bbox);
     Plane(Edge e, const Eigen::Vector3d &norm, std::array<double, 6> bbox);
     Plane(const quickhull::Plane<double> &p, std::array<double, 6> bbox);
 
