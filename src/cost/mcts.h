@@ -33,9 +33,8 @@ struct TreeNode {
     int next_cand_choice = 0;
     int children_count = 0;
 
-    double UCB_score = 0.; // Upper Confidence Bound score ? this might need to be a function that we recalculate
-
-    double q;
+    double c; // exploration parameter of c_star, is concavity(shape) / depth of tree
+    double q; // value function
 
     const Mesh* c_star = nullptr;
     std::vector<Plane> candidate_planes; // candidate planes for c_star
@@ -48,7 +47,8 @@ struct TreeNode {
         depth = d;
         C = new_C;
         auto it = C.rbegin();
-        q = it->first;
+        q = it->first; // initialize q to be concavity score, but will change later
+        c = q / static_cast<double>(MAX_DEPTH);
         c_star = it->second; // get argmax Concavity(c_i) in C
 
         // for root node, can just pass in
@@ -63,7 +63,8 @@ struct TreeNode {
         depth = d;
         C = new_C;
         auto it = C.rbegin();
-        q = it->first;
+        q = it->first; // initialize q to be concavity score, but will change later
+        c = q / static_cast<double>(MAX_DEPTH);
         c_star = it->second; // get argmax Concavity(c_i) in C
 
         prev_cut_plane = p;
@@ -79,13 +80,31 @@ struct TreeNode {
         return candidate_planes[next_cand_choice++];
     }
 
+    // Upper Confidence Bound score. this shouldn't be called on the root node, or will segfault on null parent.
+    double UCB_score() {
+        return q + (c * std::sqrt((2. * std::log(static_cast<double>(parent->visit_count)) / static_cast<double>(visit_count))));
+    }
+
     // best child of the current tree node according to the UCB formula
     TreeNode* get_best_child() {
         // error case, if child cuts is empty
         if (child_cuts.size() == 0) {
             return nullptr;
         }
-        return child_cuts[0]; // TODO: implement this
+
+        // find best child based on highest UCB score
+        double max_score = -std::numeric_limits<double>::infinity();
+        TreeNode* best_child = nullptr;
+        for (TreeNode* c : child_cuts) {
+            double c_score = c->UCB_score();
+            // replacement
+            if (c_score > max_score) {
+                max_score = c_score;
+                best_child = c;
+            }
+        }
+
+        return best_child;
     }
 
     // check if we have already expanded all candidates
@@ -99,6 +118,7 @@ struct TreeNode {
 
     }
 
+
 };
 
 class MCTS {
@@ -111,6 +131,7 @@ class MCTS {
     static std::pair<std::vector<Plane>, TreeNode*> tree_policy(TreeNode* v, int max_depth);
     static std::pair<std::vector<Plane>, double> default_policy(TreeNode* v, int max_depth);
     static void backup(TreeNode* v, double _q);
+    // TODO QUALITY??
 
     // greedy
     static vector<Edge> get_concave_edges_greedy(const Mesh& mesh);
