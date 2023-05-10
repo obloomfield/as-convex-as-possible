@@ -36,6 +36,7 @@ Plane::Plane(Edge e, const Vector3d &norm, array<double, 6> bbox) {
     //    assert(mat.determinant() < EPSILON);
 }
 
+// TODO: fix the spacing, fix the missing axis
 Plane::Plane(const Eigen::Vector3d &norm, double d, std::array<double, 6> bbox) {
     auto [a, b, c, x, y, z] = bbox;
     Vector3d minCoords(a, b, c);
