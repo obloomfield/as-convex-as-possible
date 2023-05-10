@@ -4,41 +4,23 @@
 
 // ============ MCTS =============
 
-ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh)  {
-
+ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh) {
     // Create root node v0 with input mesh
 
     TreeNode root = {.depth = 0};
 
-
     for (int iter = 0; iter < ITERATIONS; ++iter) {
-
-
         // TreePolicy
         auto [root_planes, intermediate_planes] = tree_policy(&root, MAX_DEPTH);
-
-
-
-
     }
 
-
+    return {};
 }
-
 
 std::pair<std::unordered_set<Plane>, TreeNode*> MCTS::tree_policy(TreeNode* v, int depth) {
-    std::unordered_set<Plane> S;
-
-
-
-
+    //    std::unordered_set<Plane> S;
+    return {};
 }
-
-
-
-
-
-
 
 // ============ Greedy =============
 
@@ -53,7 +35,7 @@ map<double, Mesh> MCTS::greedy_search(const Mesh& cur_mesh) {
         Mesh worst_mesh = it->second;
 
         // Get all concave edges of the worst shape, sorted from furthest to closest distance to CH
-        vector<Edge> concave_edges = get_concave_edges(worst_mesh);
+        vector<Edge> concave_edges = worst_mesh.get_concave_edges();
         deque<Edge> sorted_concave_edges =
             ConcavityMetric::sort_concave_edges(worst_mesh, concave_edges);
 
@@ -65,7 +47,7 @@ map<double, Mesh> MCTS::greedy_search(const Mesh& cur_mesh) {
         }
 
         // Get the best cut, remove the old Mesh, then insert the new fragments
-        auto [frag1, frag2] = get_best_cut(selected_concave_edges, worst_mesh);
+        auto [frag1, frag2] = get_best_cut_greedy(selected_concave_edges, worst_mesh);
         cost_to_mesh.erase(it->first);
 
         double frag1_cost = ConcavityMetric::concavity(frag1);

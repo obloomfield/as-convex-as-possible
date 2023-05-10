@@ -26,6 +26,7 @@ class Plane {
     Eigen::Vector3d p3;
 
  public:
+    Plane() = default;
     Plane(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c, Eigen::Vector3d d) {
         p0 = a, p1 = b, p2 = c, p3 = d;
         // ensure that all points make a plane
@@ -35,7 +36,7 @@ class Plane {
         assert(mat.determinant() < EPSILON);
     }
 
-    Plane(Eigen::Vector3d a,  Eigen::Vector3d b, Eigen::Vector3d c) {
+    Plane(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c) {
         // IMPORTANT:
         // assumes:
         // a --- b
@@ -45,7 +46,7 @@ class Plane {
         //  .. neighborhood relationship of vertices
         // may often be better to use 4-point constructor
 
-        p0 = a, p1 = b, p2 = c, p3 = b+c-a;
+        p0 = a, p1 = b, p2 = c, p3 = b + c - a;
         double EPSILON = 1e-9;
         Eigen::Matrix<double, 3, 3> mat;
         mat << (p1 - p0), (p2 - p0), (p3 - p0);
@@ -63,6 +64,16 @@ class Plane {
     static Plane load_from_file(const std::string &path);
     void save_to_file(const std::string &path);
 };
+
+namespace std {
+template <>
+struct hash<Plane> {
+    size_t operator()(const Plane &p) const {
+        // TODO: implement
+        return 0;
+    }
+};
+}  // namespace std
 
 class Triangle {
  public:
