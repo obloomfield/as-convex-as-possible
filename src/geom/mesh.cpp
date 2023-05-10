@@ -3,13 +3,23 @@
 using namespace std;
 using namespace Eigen;
 
-const bool PRINT_INTERMEDIATE_OBJ = false;
+constexpr bool PRINT_INTERMEDIATE_OBJ = false;
 
-#define ASSERT(cond)                                \
-    if (!(cond)) {                                  \
-        fprintf(stderr, "MCUT error: %s\n", #cond); \
-        std::exit(1);                               \
-    }
+#define ASSERT(cond)                                                                      \
+    do {                                                                                  \
+        if (!(cond)) {                                                                    \
+            fprintf(stderr, "MCUT error (line %d): %s. Got %d\n", __LINE__, #cond, cond); \
+            std::exit(1);                                                                 \
+        }                                                                                 \
+    } while (0)
+
+#define ASSERT_NO_ERROR(err)                                               \
+    do {                                                                   \
+        if ((err) != MC_NO_ERROR) {                                        \
+            fprintf(stderr, "MCUT error (line %d): %lu\n", __LINE__, err); \
+            std::exit(1);                                                  \
+        }                                                                  \
+    } while (0)
 
 constexpr string_view OUT_DIR = "fragments/";
 
@@ -138,7 +148,8 @@ vector<Plane> Mesh::get_cutting_planes(const Edge& concave_edge, int k) {
     // Get Quaternions for n1 -> n2
     Quaterniond qa = Quaterniond::Identity(), qb = Quaterniond::FromTwoVectors(n1, n2);
     // slerp it k times
-    for (double t = 0, step = 1. / k; t < 1.; t += step) {
+    for (int i = 0; i < k; i++) {
+        double t = double(i) / k;
         auto norm = qa.slerp(t, qb) * n1;
         // Now, construct a plane from the concave edge, the norm, and the mesh's bounding box
         auto plane = Plane(concave_edge, norm, bbox);
@@ -156,11 +167,12 @@ vector<Mesh> Mesh::cut_plane(quickhull::Plane<double>& p) {
 std::vector<Mesh> Mesh::cut_plane(Plane& p) {
     auto [p0, p1, p2, p3] = p.bounds();
 
-    double cutMeshVertices[] = {p0.x(), p0.y(), p0.z(), p1.x(), p1.y(), p1.z(),
-                                p2.x(), p2.y(), p2.z(), p3.x(), p3.y(), p3.z()};
+    double cutMeshVertices[] = {p0.x(), p0.y(), p0.z(),   // p0
+                                p1.x(), p1.y(), p1.z(),   // p1
+                                p2.x(), p2.y(), p2.z(),   // p2
+                                p3.x(), p3.y(), p3.z()};  // p3
 
-    uint32_t cutMeshFaces[] = {// arbitrary, just to trimesh the plane
-                               1, 2, 0, 1, 3, 2};
+    uint32_t cutMeshFaces[] = {1, 2, 0, 1, 3, 2};
 
     uint32_t numCutMeshVertices = 4;
     uint32_t numCutMeshFaces = 2;
@@ -189,7 +201,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
     McContext context = MC_NULL_HANDLE;
     McResult err = mcCreateContext(&context, MC_NULL_HANDLE);
 
-    ASSERT(err == MC_NO_ERROR);
+    ASSERT_NO_ERROR(err);
 
     auto MC_DISPATCH_FILTER_CLOSED_FRAGMENTS =
         (MC_DISPATCH_REQUIRE_THROUGH_CUTS | MC_DISPATCH_FILTER_FRAGMENT_LOCATION_ABOVE |
@@ -204,7 +216,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
                              // cut-mesh is a triangle mesh
                    numCutMeshVertices, numCutMeshFaces);
 
-    ASSERT(err == MC_NO_ERROR);
+    ASSERT_NO_ERROR(err);
 
     // 4. query the number of available connected component (here, we're only interested in the
     // fragments)
@@ -215,7 +227,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
     err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT, 0, NULL,
                                    &numConnComps);
 
-    ASSERT(err == MC_NO_ERROR);
+    ASSERT_NO_ERROR(err);
 
     if (numConnComps == 0) {
         fprintf(stdout, "no connected components found\n");
@@ -227,7 +239,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
     err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT,
                                    (uint32_t)connComps.size(), connComps.data(), NULL);
 
-    ASSERT(err == MC_NO_ERROR);
+    ASSERT_NO_ERROR(err);
 
     // 5. query the data of each connected component from MCUT
     // -------------------------------------------------------
@@ -244,7 +256,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
         err = mcGetConnectedComponentData(
             context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_FLOAT, 0, NULL, &numBytes);
 
-        ASSERT(err == MC_NO_ERROR);
+        ASSERT_NO_ERROR(err);
 
         uint32_t numberOfVertices = (uint32_t)(numBytes / (sizeof(float) * 3));
 
@@ -254,19 +266,19 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
             mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_FLOAT,
                                         numBytes, (void*)vertices.data(), NULL);
 
-        ASSERT(err == MC_NO_ERROR);
+        ASSERT_NO_ERROR(err);
 
         // query the faces
         // -------------------
 
         err = mcGetConnectedComponentData(
             context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, 0, NULL, &numBytes);
-        ASSERT(err == MC_NO_ERROR);
+        ASSERT_NO_ERROR(err);
         std::vector<uint32_t> faceIndices(numBytes / sizeof(uint32_t), 0);
         err = mcGetConnectedComponentData(context, connComp,
                                           MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, numBytes,
                                           faceIndices.data(), NULL);
-        ASSERT(err == MC_NO_ERROR);
+        ASSERT_NO_ERROR(err);
 
         std::vector<uint32_t> faceSizes(faceIndices.size() / 3, 3);
         printf("faces: %d\n", (int)faceSizes.size());
@@ -295,13 +307,13 @@ std::vector<Mesh> Mesh::cut_plane(Plane& p) {
     // --------------------------------
     err = mcReleaseConnectedComponents(context, 0, NULL);
 
-    ASSERT(err == MC_NO_ERROR);
+    ASSERT_NO_ERROR(err);
 
     // 7. destroy context
     // ------------------
     err = mcReleaseContext(context);
 
-    ASSERT(err == MC_NO_ERROR);
+    ASSERT_NO_ERROR(err);
 
     // TODO: remake Mesh objects for two connected components
 

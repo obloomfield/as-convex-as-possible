@@ -16,6 +16,8 @@ int main(int argc, char *argv[]) {
 
     // Load mesh from file
     Mesh m = Mesh::load_from_file(MESH_FILE);
+    Mesh ch = m.computeCH();
+    ch.save_to_file(OUT_DIR + "ch.obj");
 
     // Get concave edges, then print their triangles
     auto c_edges = m.get_concave_edges();
@@ -32,6 +34,14 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < c_planes.size(); i++) {
         string out_file = OUT_DIR + "plane" + to_string(i) + ".obj";
         c_planes[i].save_to_file(out_file);
+    }
+
+    // Cut along the first
+    auto frags = m.cut_plane(c_planes[0]);
+    cout << frags.size() << endl;
+    for (int i = 0; i < frags.size(); i++) {
+        string out_file = OUT_DIR + "frag" + to_string(i) + ".obj";
+        frags[i].save_to_file(out_file);
     }
 
     return 0;

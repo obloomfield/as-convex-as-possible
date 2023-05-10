@@ -16,17 +16,18 @@ Plane::Plane(Edge e, const Vector3d &norm, array<double, 6> bbox) {
     auto dist_diag = dist(minCoords, maxCoords);
 
     // Get direction vector
-    auto n = (e[1] - e[0]).normalized();
+    auto n = (e.b_ - e.a_).normalized();
 
     // Scale edge endpoints by that distance, in the appropriate direction
-    e[0] -= dist_diag * n;
-    e[1] += dist_diag * n;
+    e.a_ -= dist_diag * n;
+    e.b_ += dist_diag * n;
 
     // Take those endpoints, and add/subtract the normal in which we wish to create the plane
-    p0 = e[0] + dist_diag * norm;
-    p1 = e[0] - dist_diag * norm;
-    p2 = e[1] - dist_diag * norm;
-    p3 = e[1] + dist_diag * norm;
+    n = norm.normalized();
+    p0 = e[0] + dist_diag * n;
+    p1 = e[0] - dist_diag * n;
+    p2 = e[1] + dist_diag * n;
+    p3 = e[1] - dist_diag * n;
 
     // ensure that all points make a plane
     double EPSILON = 1e-9;
