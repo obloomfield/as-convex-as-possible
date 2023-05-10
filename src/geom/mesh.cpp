@@ -133,6 +133,35 @@ double Mesh::volume() const {
     return abs(volume);
 }
 
+//
+double MIN_INTERVAL = 0.01;
+vector<Plane> Mesh::get_axis_aligned_planes(int k) {
+    // k: number of cuts per each axis
+    auto bbox = this->bounding_box();
+    vector<Plane> res;
+    res.reserve(k*3);
+    double interval;
+    interval = max(MIN_INTERVAL, abs(bbox[0] - bbox[1]) / ((double)k+1));
+    for (double i = bbox[0] + interval; i <= bbox[1] - interval; i+=interval) {
+        Vector3d norm(1.0, 0.0, 0.0);
+        Plane p(norm,-i,bbox);
+        res.push_back(p);
+    }
+    interval = max(MIN_INTERVAL, abs(bbox[2] - bbox[3]) / ((double)k+1));
+    for (double i = bbox[0] + interval; i <= bbox[1] - interval; i+=interval) {
+        Vector3d norm(0.0, 1.0, 0.0);
+        Plane p(norm,-i,bbox);
+        res.push_back(p);
+    }
+    interval = max(MIN_INTERVAL, abs(bbox[4] - bbox[5]) / ((double)k+1));
+    for (double i = bbox[0] + interval; i <= bbox[1] - interval; i+=interval) {
+        Vector3d norm(0.0, 0.0, 1.0);
+        Plane p(norm,-i,bbox);
+        res.push_back(p);
+    }
+    return res;
+}
+
 vector<Plane> Mesh::get_cutting_planes(const Edge &concave_edge, int k) {
     auto bbox = this->bounding_box();
     vector<Plane> res;

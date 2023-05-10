@@ -36,6 +36,38 @@ Plane::Plane(Edge e, const Vector3d &norm, array<double, 6> bbox) {
     //    assert(mat.determinant() < EPSILON);
 }
 
+Plane::Plane(const Eigen::Vector3d &norm, double d, std::array<double, 6> bbox) {
+    auto [a, b, c, x, y, z] = bbox;
+    Vector3d minCoords(a, b, c);
+    Vector3d maxCoords(x, y, z);
+
+    // Get diagonal distance between bounding box
+    double dist_diag = dist(minCoords, maxCoords);
+
+    // Compute a unit vector in the direction of the normal vector
+    Eigen::Vector3d normal = norm.normalized();
+
+    // Choose any three points from the given set to form a triangle
+    Eigen::Vector3d base = p0;
+    Eigen::Vector3d edge1 = p1 - p0;
+    Eigen::Vector3d edge2 = p2 - p0;
+
+    // Compute the normal of the triangle using the cross product of two of its edges
+    Eigen::Vector3d triangleNormal = edge1.cross(edge2).normalized();
+
+    // Compute the distance from the origin to the plane using the given d value
+    double distance = std::abs(d / triangleNormal.norm());
+
+    // Compute the fourth point on the plane by adding the scaled normal vector to the base point
+    Eigen::Vector3d fourthPoint = base + distance * normal;
+
+    // Assign the four points to the class members p0, p1, p2, and p3
+    p0 = base + normal * dist_diag;
+    p1 = base - normal * dist_diag;
+    p2 = fourthPoint - normal * dist_diag;
+    p3 = fourthPoint + normal * dist_diag;
+}
+
 Plane::Plane(const quickhull::Plane<double> &p, std::array<double, 6> bbox) {
     // Convert plane types
     Vector3d planeNormal(p.m_N.x, p.m_N.y, p.m_N.z);
