@@ -13,15 +13,19 @@ ComponentsQueue MCTS::MCTS_search(const Mesh& cur_mesh)  {
     ComponentsQueue root_C;
     root_C[cost] = new Mesh(cur_mesh); // TODO: NEED SHARED POINTERS HERE!!!!!!
 
+    std::vector<Plane> TEMP; // TODO: replace this with initial candidates
     // create v_0 root tree node
-    TreeNode* root = new TreeNode(root_C, 0, rng_eng);
+    TreeNode* root = new TreeNode(root_C, 0, TEMP, rng_eng);
 
     // run search for ITERATIONS
     for (int t = 0; t < ITERATIONS; ++t) {
 
         // TreePolicy
-        auto [root_planes, intermediate_planes] = tree_policy(root, MAX_DEPTH);
+        auto [root_planes, v_l] = tree_policy(root, MAX_DEPTH);
 
+        // DefaultPolicy
+
+        // Backup
 
 
 
@@ -80,7 +84,7 @@ std::pair<std::vector<Plane>, TreeNode*> MCTS::tree_policy(TreeNode* v, int max_
                 C_prime[ConcavityMetric::concavity(components[1])] = new Mesh(components[1]); // TODO: SHARED POINTER
 
                 // create new tree node
-                TreeNode* v_prime = new TreeNode(C_prime, curr_v->depth + 1, untried_plane, rng_eng);
+                TreeNode* v_prime = new TreeNode(C_prime, curr_v->depth + 1, untried_plane, curr_v->candidate_planes, curr_v, rng_eng);
 
                 // add tree to children of curr_v
                 curr_v->child_cuts.push_back(v_prime);
@@ -97,6 +101,19 @@ std::pair<std::vector<Plane>, TreeNode*> MCTS::tree_policy(TreeNode* v, int max_
     return {S, curr_v};
 }
 
+
+
+
+
+void MCTS::backup(TreeNode* v, double _q) {
+    TreeNode* curr_v = v;
+
+    while (curr_v != nullptr) {
+        ++curr_v->visit_count; // increment visit count
+        curr_v->q = std::max(curr_v->q, _q); // update value function score
+        curr_v = curr_v->parent;
+    }
+}
 
 
 // ============ Greedy =============
