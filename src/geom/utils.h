@@ -12,6 +12,23 @@
 #include "geom/shapes.h"
 #include "mcut/mcut.h"
 
+#define DEBUG_NONE 0x00  // DBTEXT: No debugging
+#define DEBUG_INFO 0x01  // DBTEXT: Print info
+#define DEBUG_ERRS 0x02  // DBTEXT: Verbose error reporting
+
+#define LOG_DEBUG DEBUG_INFO
+#ifdef LOG_DEBUG
+extern unsigned int debug;
+#define DEBUG_MSG(msg_str)          \
+    {                               \
+        std::stringstream ss;       \
+        ss << msg_str << std::endl; \
+        std::cerr << ss.str();      \
+    }
+#else
+#define DEBUG_MSG(msg_str)
+#endif
+
 using namespace std;
 using namespace Eigen;
 
@@ -41,6 +58,12 @@ inline vector<Vector3i> uint_to_vec3i(const vector<uint32_t>& uint_vec) {
         vec3i_vec.emplace_back(uint_vec[i], uint_vec[i + 1], uint_vec[i + 2]);
     }
     return vec3i_vec;
+}
+
+inline int get_third_point(const Vector3i& t, const EdgeIndices& ei) {
+    if (t[0] != ei.ai_ && t[0] != ei.bi_) return t[0];
+    if (t[1] != ei.ai_ && t[1] != ei.bi_) return t[1];
+    return t[2];
 }
 
 inline Vector3d get_third_point(const Triangle& t, const Edge& e) {
@@ -132,14 +155,14 @@ inline double signed_tri_volume(const Vector3d& p1, const Vector3d& p2, const Ve
 }
 
 inline void print_triangle(const Vector3i& tri) {
-    cout << "Triangle: " << (tri[0] + 1) << " " << (tri[1] + 1) << " " << (tri[2] + 1) << endl;
+    DEBUG_MSG("Triangle: " << (tri[0] + 1) << " " << (tri[1] + 1) << " " << (tri[2] + 1));
 }
 
 // Save verts/faces to an .obj file
 inline void writeOBJ(const std::string& path, const float* ccVertices, const int ccVertexCount,
                      const uint32_t* ccFaceIndices, const uint32_t* faceSizes,
                      const uint32_t ccFaceCount) {
-    printf("write file: %s\n", path.c_str());
+    DEBUG_MSG("Write file: " << path);
 
     std::ofstream file(path);
 

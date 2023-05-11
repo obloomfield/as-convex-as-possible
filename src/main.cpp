@@ -6,21 +6,69 @@
 #include <ctime>
 #include <string_view>
 
+#include "cost/concavity.h"
+#include "cost/mcts.h"
 #include "mainwindow.h"
 
 using namespace std::chrono;
 
-const std::string MESH_FILE = "meshes/teapot.obj";
+const std::string MESH_FILE = "meshes/cactus.obj";
 
 const std::string OUT_DIR = "out/";
 
 int main(int argc, char *argv[]) {
     srand(static_cast<unsigned>(time(0)));
 
+    //    for (int i = 0; i < 17; i++) {
+    //        Mesh::load_from_file("out/iter13mesh" + to_string(i) + ".obj")
+    //            .computeCH()
+    //            .save_to_file("out/finalfrag" + to_string(i) + ".obj");
+    //    }
+
+    cout << "starting mesh load...\n";
+    auto t1 = chrono::high_resolution_clock::now();
+
     // Load mesh from file
     Mesh m = Mesh::load_from_file(MESH_FILE);
+
+    auto t2 = chrono::high_resolution_clock::now();
+    cout << "Total time: " << chrono::duration_cast<chrono::milliseconds>(t2 - t1).count()
+         << "ms\n";
+
     Mesh ch = m.computeCH();
     ch.save_to_file(OUT_DIR + "ch.obj");
+
+    cout << "starting greedy search...\n";
+    t1 = chrono::high_resolution_clock::now();
+
+    auto frag_map = MCTS::greedy_search(m);
+
+    t2 = chrono::high_resolution_clock::now();
+    cout << "Total time: " << chrono::duration_cast<chrono::milliseconds>(t2 - t1).count()
+         << "ms\n";
+
+    cout << endl << endl;
+
+    int i = 0;
+    for (auto &[_, m] : frag_map) {
+        // Check if still concave; if not, convert to convex hull
+        if (m.is_concave()) m = m.computeCH();
+        string out_file = OUT_DIR + "frag" + to_string(i++) + ".obj";
+        m.save_to_file(out_file);
+    }
+
+    return 0;
+
+    // Test speed of concavity calculations
+    cout << "starting concavity...\n";
+    t1 = chrono::high_resolution_clock::now();
+
+    auto concavity = ConcavityMetric::concavity(m);
+
+    t2 = chrono::high_resolution_clock::now();
+    cout << chrono::duration_cast<chrono::milliseconds>(t2 - t1).count() << "ms\n";
+
+    cout << "concavity: " << concavity << endl;
 
     // Get concave edges, then print their triangles
     auto c_edges = m.get_concave_edges();
@@ -35,12 +83,12 @@ int main(int argc, char *argv[]) {
     }
 
     cout << "starting cut...\n";
-    auto t1 = chrono::high_resolution_clock::now();
+    t1 = chrono::high_resolution_clock::now();
+
     auto frags = m.cut_plane(c_planes[0]);
-    auto t2 = chrono::high_resolution_clock::now();
-    /* Getting number of milliseconds as an integer. */
-    auto ms_int = chrono::duration_cast<chrono::milliseconds>(t2 - t1);
-    cout << ms_int.count() << "ms\n";
+
+    t2 = chrono::high_resolution_clock::now();
+    cout << chrono::duration_cast<chrono::milliseconds>(t2 - t1).count() << "ms\n";
 
     cout << frags.size() << endl;
     for (int i = 0; i < frags.size(); i++) {

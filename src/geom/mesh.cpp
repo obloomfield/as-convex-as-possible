@@ -32,11 +32,14 @@ Mesh::Mesh(std::vector<Eigen::Vector3d> verts, std::vector<Eigen::Vector3i> tris
     // For each triangle, get its edges; assign them to this triangle (each edge
     // should have two triangles)
     for (auto &&tri : tris) {
-        auto edges = this->get_triangle_edges(tri);
-        for (auto &&e : edges) {
+        auto edges = this->get_triangle_edge_indices(tri);
+        for (const auto &e : edges) {
             // If edge already exists in map, assign to 2nd triangle; otherwise,
             // assign to 1st
-            this->m_edge_tris[e][this->m_edge_tris.contains(e) ? 1 : 0] = tri;
+            if (this->m_edge_tris.contains(e))
+                this->m_edge_tris[e][1] = tri;
+            else
+                this->m_edge_tris[e][0] = tri;
         }
     }
 }
@@ -44,6 +47,10 @@ Mesh::Mesh(std::vector<Eigen::Vector3d> verts, std::vector<Eigen::Vector3i> tris
 array<Edge, 3> Mesh::get_triangle_edges(const Vector3i &tri) const {
     auto t = this->get_triangle(tri);
     return {Edge(t[0], t[1]), Edge(t[1], t[2]), Edge(t[2], t[0])};
+}
+
+array<EdgeIndices, 3> Mesh::get_triangle_edge_indices(const Vector3i &tri) const {
+    return {EdgeIndices(tri[0], tri[1]), EdgeIndices(tri[1], tri[2]), EdgeIndices(tri[2], tri[0])};
 }
 
 Mesh Mesh::computeCH() const {
@@ -137,68 +144,79 @@ double Mesh::volume() const {
 double MIN_INTERVAL = 0.01;
 vector<Plane> Mesh::get_axis_aligned_planes(int k) const {
     // k: number of cuts per each axis
-    auto [a,b,c,x,y,z] = this->bounding_box();
-    Vector3d minBounds(a,b,c);
-    Vector3d maxBounds(x,y,z);
+    auto [a, b, c, x, y, z] = this->bounding_box();
+    Vector3d minBounds(a, b, c);
+    Vector3d maxBounds(x, y, z);
     auto bbox = this->bounding_box();
 
     vector<Plane> res;
-    res.reserve(k*3);
+    res.reserve(k * 3);
     double interval;
-    interval = max(MIN_INTERVAL, abs(a-x) / ((double)k+1));
-    for (double i = a + interval; i <= x - interval; i+=interval) {
+    interval = max(MIN_INTERVAL, abs(a - x) / ((double)k + 1));
+    for (double i = a + interval; i <= x - interval; i += interval) {
         Vector3d norm(1.0, 0.0, 0.0);
-        Plane p(norm,-i,bbox);
+        Plane p(norm, -i, bbox);
         res.push_back(p);
     }
-    interval = max(MIN_INTERVAL, abs(b - y) / ((double)k+1));
-    for (double i = b+interval; i <= y-interval; i+=interval) {
+    interval = max(MIN_INTERVAL, abs(b - y) / ((double)k + 1));
+    for (double i = b + interval; i <= y - interval; i += interval) {
         Vector3d norm(0.0, 0.0, 0.0);
-        Plane p(norm,-i,bbox);
+        Plane p(norm, -i, bbox);
         res.push_back(p);
     }
-    interval = max(MIN_INTERVAL, abs(c - z) / ((double)k+1));
-    for (double i = c + interval; i <= z-interval; i+=interval) {
+    interval = max(MIN_INTERVAL, abs(c - z) / ((double)k + 1));
+    for (double i = c + interval; i <= z - interval; i += interval) {
         Vector3d norm(0.0, 0.0, 1.0);
-        Plane p(norm,-i,bbox);
+        Plane p(norm, -i, bbox);
         res.push_back(p);
     }
     return res;
 }
 
-vector<Plane> Mesh::get_cutting_planes(const Edge &concave_edge, int k) {
+vector<Plane> Mesh::get_cutting_planes(const EdgeIndices &ei, int k) const {
     auto bbox = this->bounding_box();
     vector<Plane> res;
     res.reserve(k);
 
     // Get triangles associated with concave edge of interest
-    auto [t1_inds, t2_inds] = this->m_edge_tris.at(concave_edge);
+    auto [t1_inds, t2_inds] = this->m_edge_tris.at(ei);
+
+    auto e = this->get_edge(ei);
+
+    //    print_triangle(t1_inds);
+    //    print_triangle(t2_inds);
+
     auto t1 = this->get_triangle(t1_inds), t2 = this->get_triangle(t2_inds);
     // Compute normals for the concave edge to each of the triangles
-    auto n1 = edge_tri_norm(concave_edge, t1), n2 = edge_tri_norm(concave_edge, t2);
+    auto n1 = edge_tri_norm(e, t1), n2 = edge_tri_norm(e, t2);
     // Get Quaternions for n1 -> n2
     Quaterniond qa = Quaterniond::Identity(), qb = Quaterniond::FromTwoVectors(n1, n2);
     // slerp it k times
     for (int i = 0; i < k; i++) {
         double t = double(i) / k;
+        // Alter first and last ones by a bit
+        //        if (i == 0) {
+        //            t = .05;
+        //        } else if (i == k - 1) {
+        //            t = .95;
+        //        }
         auto norm = qa.slerp(t, qb) * n1;
         // Now, construct a plane from the concave edge, the norm, and the mesh's
         // bounding box
-        auto plane = Plane(concave_edge, norm, bbox);
+        auto plane = Plane(e, norm, bbox);
         res.push_back(plane);
     }
 
     return res;
 }
 
-
-vector<Mesh> Mesh::cut_plane(quickhull::Plane<double>& p) const {
+vector<Mesh> Mesh::cut_plane(quickhull::Plane<double> &p) const {
     Plane bound_plane = Plane(p, this->bounding_box());
     return cut_plane(bound_plane);
 }
 
 std::vector<Mesh> Mesh::cut_plane(Plane &p) const {
-    auto round = [](double d) { return std::ceil(d * 1e5) / 1e5; };
+    auto round = [](double d) { return std::round(d * 1e3) / 1e3; };
     auto [p0, p1, p2, p3] = p.bounds();
 
     double cutMeshVertices[] = {round(p0.x()), round(p0.y()), round(p0.z()),   // p0
@@ -250,7 +268,11 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) const {
         nullptr,  // no need to give 'faceSizes' parameter since cut-mesh is a triangle mesh
         numCutMeshVertices, numCutMeshFaces);
 
-    ASSERT_NO_ERROR(err);
+    if (err != MC_NO_ERROR) {
+        DEBUG_MSG("here1");
+        return {};
+    }
+    //    ASSERT_NO_ERROR(err);
 
     // 4. query the number of available connected component (here, we're only
     // interested in the fragments)
@@ -261,11 +283,16 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) const {
     err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT, 0, NULL,
                                    &numConnComps);
 
-    ASSERT_NO_ERROR(err);
+    if (err != MC_NO_ERROR) {
+        DEBUG_MSG("here2");
+        return {};
+    }
+    //    ASSERT_NO_ERROR(err);
 
     if (numConnComps == 0) {
         fprintf(stdout, "no connected components found\n");
-        exit(0);
+        return {};
+        exit(1);
     }
 
     connComps.resize(numConnComps);
@@ -273,7 +300,12 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) const {
     err = mcGetConnectedComponents(context, MC_CONNECTED_COMPONENT_TYPE_FRAGMENT,
                                    (uint32_t)connComps.size(), connComps.data(), NULL);
 
-    ASSERT_NO_ERROR(err);
+    if (err != MC_NO_ERROR) {
+        DEBUG_MSG("here3");
+        return {};
+    }
+
+    //    ASSERT_NO_ERROR(err);
 
     // 5. query the data of each connected component from MCUT
     // -------------------------------------------------------
@@ -355,16 +387,12 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) const {
 }
 
 pair<vector<Vector3d>, vector<int>> Mesh::sample_point_set(int resolution) const {
-    // TODO: implement (extract samples, and get their corresponding triangles)
-
     // samples is based on the total surface area
     int num_samples = static_cast<int>(m_surface_area * resolution);
 
     // initialize sample vectors
-    vector<Vector3d> point_samples;
-    vector<int> tri_ind_samples;
-    point_samples.reserve(num_samples);
-    tri_ind_samples.reserve(num_samples);
+    vector<Vector3d> point_samples(num_samples);
+    vector<int> tri_ind_samples(num_samples);
 
     // with the number of samples, sample a random triangle based on its area and
     // sample a point on it
@@ -385,7 +413,8 @@ pair<vector<Vector3d>, vector<int>> Mesh::sample_point_set(int resolution) const
         Vector3i tri = m_triangles[index];
 
         // sample barycentric coordinate of tri and add it to the samples
-        point_samples[i] = random_barycentric_coord(m_verts[0], m_verts[1], m_verts[2]);
+        point_samples[i] =
+            random_barycentric_coord(m_verts[tri[0]], m_verts[tri[1]], m_verts[tri[2]]);
     }
 
     return {point_samples, tri_ind_samples};
@@ -402,27 +431,29 @@ vector<Edge> Mesh::shared_edges(const Vector3i &tri1, const Vector3i &tri2) {
     return shared;
 }
 
-vector<Edge> Mesh::get_concave_edges() const {
-    vector<Edge> concave_edges;
-    for (const auto &[edge, tris] : this->m_edge_tris) {
+bool Mesh::is_concave() const {
+    return !this->get_concave_edges().empty();
+}
+
+vector<EdgeIndices> Mesh::get_concave_edges() const {
+    vector<EdgeIndices> concave_edge_indices;
+    for (const auto &[ei, tris] : this->m_edge_tris) {
         // Get the triangle points corresponding to each triangle's indices
-        auto [tri1_indices, tri2_indices] = tris;
-        Triangle tri1 = this->get_triangle(tri1_indices);
-        Triangle tri2 = this->get_triangle(tri2_indices);
+        auto [tri1, tri2] = tris;
 
         // Get the vertices that the triangles don't share
-        Vector3d v1 = get_third_point(tri1, edge), v2 = get_third_point(tri2, edge);
+        Vector3d v1 = m_verts[get_third_point(tri1, ei)], v2 = m_verts[get_third_point(tri2, ei)];
 
-        // Check angle between the two triangles
-        Vector3d u = v1 - edge.a_, v = v2 - edge.a_;
-        double dot = u.dot(v);
+        auto edge = this->get_edge(ei);
 
-        // is angle less than 180 (is edge concave)? Add to list:
-        if (dot >= 0.0) {
-            concave_edges.push_back(edge);
+        Triangle t1 = this->get_triangle(tri1);
+
+        // If (v2 - v1) * t1_norm > 0, concave
+        if ((v2 - v1).dot(t1.norm()) > 0) {
+            concave_edge_indices.push_back(ei);
         }
     }
-    return concave_edges;
+    return concave_edge_indices;
 }
 
 Mesh Mesh::load_from_file(const std::string &path) {
@@ -438,7 +469,7 @@ Mesh Mesh::load_from_file(const std::string &path) {
     return Mesh(verts, faces);
 }
 
-void Mesh::save_to_file(const string &path) {
+void Mesh::save_to_file(const string &path) const {
     ofstream outfile;
     outfile.open(path);
 

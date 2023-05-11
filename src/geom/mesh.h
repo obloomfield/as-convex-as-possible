@@ -26,8 +26,8 @@ class Mesh {
     // Vertices/triangles information.
     std::vector<Eigen::Vector3d> m_verts;
     std::vector<Eigen::Vector3i> m_triangles;
-    // Map of Edge -> Triangles
-    std::map<Edge, std::array<Eigen::Vector3i, 2>> m_edge_tris;
+    // Map of EdgeIndices -> Triangles
+    std::map<EdgeIndices, std::array<Eigen::Vector3i, 2>> m_edge_tris;
 
     // Default constructor.
     Mesh() = default;
@@ -39,12 +39,15 @@ class Mesh {
     // Constructs a Mesh from a Shape object. Initializes total surface area.
     Mesh(Shape m_shape) : Mesh(m_shape.getVerticesDouble(), m_shape.getFaces()) {}
 
-    // Get a triangle from a provided Vector3i.
+    // Get a triangle/edge from a provided Vector3i.
     Triangle get_triangle(const Eigen::Vector3i &tri) const {
         return {m_verts[tri[0]], m_verts[tri[1]], m_verts[tri[2]]};
     }
+    Edge get_edge(const EdgeIndices &ei) const { return Edge(m_verts[ei.ai_], m_verts[ei.bi_]); }
+
     // Get a triangle's edges from a provided Vector3i.
     std::array<Edge, 3> get_triangle_edges(const Eigen::Vector3i &tri) const;
+    std::array<EdgeIndices, 3> get_triangle_edge_indices(const Eigen::Vector3i &tri) const;
 
     // Computes the convex hull of the mesh. Fast, but can be unstable.
     Mesh computeCH() const;
@@ -63,8 +66,8 @@ class Mesh {
     pair<vector<Eigen::Vector3d>, std::vector<int>> sample_point_set(int resolution = 2000) const;
 
     // Get k cutting planes for the mesh along a concave edge, from one triangle to another.
-    std::vector<Plane> get_cutting_planes(const Edge &concave_edge, int k);
-    vector<Plane> get_axis_aligned_planes(int k) const; // axis aligned version for MCTS
+    std::vector<Plane> get_cutting_planes(const EdgeIndices &ei, int k) const;
+    vector<Plane> get_axis_aligned_planes(int k) const;  // axis aligned version for MCTS
 
     // Cut the mesh with the specified cutting plane.
     std::vector<Mesh> cut_plane(Plane &p) const;
@@ -73,13 +76,14 @@ class Mesh {
     std::array<double, 6> bounding_box() const { return m_bbox; };
 
     // MCTS helpers
-    vector<Edge> get_concave_edges() const;
+    bool is_concave() const;
+    vector<EdgeIndices> get_concave_edges() const;
     std::vector<Edge> shared_edges(const Eigen::Vector3i &tri1, const Eigen::Vector3i &tri2);
     std::vector<Mesh> merge(const std::vector<Mesh> &Q);
 
     // For helpful intermediate step visualizations
     static Mesh load_from_file(const std::string &path);
-    void save_to_file(const std::string &path);
+    void save_to_file(const std::string &path) const;
 
  private:
     // for Monte-Carlo Tree Search

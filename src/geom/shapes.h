@@ -88,6 +88,9 @@ class Triangle {
         : pts_({a, b, c}) {}
     Triangle(const std::array<Eigen::Vector3d, 3> &tri) : pts_(tri) {}
 
+    inline Eigen::Vector3d norm() const {
+        return -(pts_[2] - pts_[0]).cross(pts_[1] - pts_[0]).normalized();
+    }
     inline Eigen::Vector3d operator[](int i) const {
         assert(i >= 0 && i < 3);
         return pts_[i];
@@ -108,6 +111,8 @@ class Edge {
     //    int ai_ = 0, bi_ = 0;  // If we need them, get the corresponding indices in the Mesh
 
     Edge() = default;
+    Edge(const Edge &e) = default;
+    Edge &operator=(const Edge &e) = default;
 
     // Maintain ordering such that a <= b always.
     Edge(const Eigen::Vector3d &a, const Eigen::Vector3d &b) {
@@ -172,4 +177,32 @@ class Edge {
     }
 
     inline bool operator!=(const Edge &other) const { return !(*this == other); }
+};
+
+// jank jank jank
+class EdgeIndices {
+ public:
+    int ai_, bi_;
+
+    EdgeIndices() = default;
+    EdgeIndices(const EdgeIndices &e) = default;
+    EdgeIndices &operator=(const EdgeIndices &e) = default;
+    EdgeIndices(int ai, int bi) {
+        if (ai < bi) {
+            ai_ = ai, bi_ = bi;
+        } else {
+            ai_ = bi, bi_ = ai;
+        }
+    }
+
+    inline bool operator<(const EdgeIndices &other) const {
+        if (ai_ < other.ai_) return true;
+        if (other.ai_ < ai_) return false;
+        return bi_ < other.bi_;
+    }
+    inline bool operator==(const EdgeIndices &other) const {
+        return ai_ == other.ai_ && bi_ == other.bi_;
+    }
+
+    inline bool operator!=(const EdgeIndices &other) const { return !(*this == other); }
 };

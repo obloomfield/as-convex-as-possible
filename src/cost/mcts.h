@@ -7,7 +7,7 @@
 #include "geom/mesh.h"
 #include "geom/shapes.h"
 
-constexpr int MAX_NUM_PIECES = 9;
+constexpr int MAX_NUM_PIECES = 20;
 constexpr int MAX_NUM_EDGES = 5;
 constexpr int NUM_CUTTING_PLANES = 5;
 
@@ -15,7 +15,7 @@ constexpr int NUM_CUTTING_PLANES = 5;
 constexpr int MAX_DEPTH = 4;
 constexpr int ITERATIONS = 500;
 
-// TODO: how to initialize axis-aligned cutting planes
+constexpr bool SAVE_ITER = true;
 
 typedef map<double, const Mesh*> ComponentsQueue;
 
@@ -23,33 +23,38 @@ typedef map<double, const Mesh*> ComponentsQueue;
  * Each child node corresponds to a cutting action from its parent
  */
 struct TreeNode {
-    ComponentsQueue C; // state of the components and their concavity at this stage in the tree search
-    Plane prev_cut_plane; // current cut plane for this node
-    std::vector<TreeNode*> child_cuts; // all future/descendant states from this node. contains at most 3m nodes, (where m is num cutting planes)
-    TreeNode* parent = nullptr; // parent pointer
+    ComponentsQueue
+        C;  // state of the components and their concavity at this stage in the tree search
+    Plane prev_cut_plane;               // current cut plane for this node
+    std::vector<TreeNode*> child_cuts;  // all future/descendant states from this node. contains at
+                                        // most 3m nodes, (where m is num cutting planes)
+    TreeNode* parent = nullptr;         // parent pointer
 
     int depth;
     int visit_count = 0;
     int next_cand_choice = 0;
     int children_count = 0;
 
-    double c; // exploration parameter of c_star, is concavity(shape) / depth of tree
-    double q; // value function
+    double c;  // exploration parameter of c_star, is concavity(shape) / depth of tree
+    double q;  // value function
 
     const Mesh* c_star = nullptr;
-    std::vector<Plane> candidate_planes; // candidate planes for c_star
+    std::vector<Plane> candidate_planes;  // candidate planes for c_star
 
+    Mesh* cut_l = nullptr;
+    Mesh* cut_r = nullptr;
 
     // FUNCTIONS
 
     // constructor for root, no plane
-    TreeNode(ComponentsQueue& new_C, int d, std::vector<Plane>& init_cand_planes, std::default_random_engine& rng) {
+    TreeNode(ComponentsQueue& new_C, int d, std::vector<Plane>& init_cand_planes,
+             std::default_random_engine& rng) {
         depth = d;
         C = new_C;
         auto it = C.rbegin();
-        q = it->first; // initialize q to be concavity score, but will change later
+        q = it->first;        // initialize q to be concavity score, but will change later
         c = q / static_cast<double>(MAX_DEPTH);
-        c_star = it->second; // get argmax Concavity(c_i) in C
+        c_star = it->second;  // get argmax Concavity(c_i) in C
 
         // for root node, can just pass in
         candidate_planes = init_cand_planes;
@@ -59,13 +64,14 @@ struct TreeNode {
     }
 
     // for intermediate nodes, if passed in a plane and parent
-    TreeNode(ComponentsQueue& new_C, int d, Plane& p, std::vector<Plane>& cand_planes, TreeNode* parent, std::default_random_engine& rng) {
+    TreeNode(ComponentsQueue& new_C, int d, Plane& p, std::vector<Plane>& cand_planes,
+             TreeNode* parent, std::default_random_engine& rng) {
         depth = d;
         C = new_C;
         auto it = C.rbegin();
-        q = it->first; // initialize q to be concavity score, but will change later
+        q = it->first;        // initialize q to be concavity score, but will change later
         c = q / static_cast<double>(MAX_DEPTH);
-        c_star = it->second; // get argmax Concavity(c_i) in C
+        c_star = it->second;  // get argmax Concavity(c_i) in C
 
         prev_cut_plane = p;
         // TODO: initialize candidate_planes. can pass in the same one each time and reshuffle
@@ -76,13 +82,13 @@ struct TreeNode {
     }
 
     // sample "random" next candidate plane
-    Plane sample_next_candidate() {
-        return candidate_planes[next_cand_choice++];
-    }
+    Plane sample_next_candidate() { return candidate_planes[next_cand_choice++]; }
 
-    // Upper Confidence Bound score. this shouldn't be called on the root node, or will segfault on null parent.
+    // Upper Confidence Bound score. this shouldn't be called on the root node, or will segfault on
+    // null parent.
     double UCB_score() {
-        return q + (c * std::sqrt((2. * std::log(static_cast<double>(parent->visit_count)) / static_cast<double>(visit_count))));
+        return q + (c * std::sqrt((2. * std::log(static_cast<double>(parent->visit_count)) /
+                                   static_cast<double>(visit_count))));
     }
 
     // best child of the current tree node according to the UCB formula
@@ -108,33 +114,31 @@ struct TreeNode {
     }
 
     // check if we have already expanded all candidates
-    inline bool has_expanded_all() {
-        return children_count == candidate_planes.size();
+    inline bool has_expanded_all() { return children_count == candidate_planes.size(); }
+
+    // sets the new components resulting from the plane cut prev_cut_plane
+    void set_newly_cut_pieces(Mesh* m0, Mesh* m1) {
+        cut_l = m0;
+        cut_r = m1;
     }
 
     // TODO: destroy this node's children, and then destroy itself.
-    void free_node() {
-
-
-    }
-
-
+    void free_node() {}
 };
 
 class MCTS {
  public:
-    static ComponentsQueue MCTS_search(const Mesh& cur_mesh);
+    static std::pair<Mesh*, Mesh*> MCTS_search(const Mesh& cur_mesh);
     static map<double, Mesh> greedy_search(const Mesh& cur_mesh);
 
  private:
     // MCTS
-    static std::pair<std::vector<Plane>, TreeNode*> tree_policy(TreeNode* v, int max_depth);
-    static std::pair<std::vector<Plane>, double> default_policy(TreeNode* v, int max_depth);
+    static std::pair<TreeNode*, double> tree_policy(TreeNode* v, int max_depth);
+    static double default_policy(TreeNode* v, int max_depth);
     static void backup(TreeNode* v, double _q);
-    // TODO QUALITY??
 
     // greedy
-    static vector<Edge> get_concave_edges_greedy(const Mesh& mesh);
-    static std::pair<Mesh, Mesh> get_best_cut_greedy(const vector<Edge>& concave_edges, Mesh& m);
-
+    static std::vector<Edge> get_concave_edges_greedy(const Mesh& mesh);
+    static pair<map<double, Mesh>, vector<Plane>> get_best_cut_greedy(
+        const vector<EdgeIndices>& concave_edges, Mesh& m);
 };
