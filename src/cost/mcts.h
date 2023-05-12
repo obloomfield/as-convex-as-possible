@@ -19,7 +19,7 @@ constexpr bool SAVE_ITER = true;
 
 static const std::string OUT_EDGE_FILE = "out/bunny_concave_edges.txt";
 
-typedef map<double, const Mesh*> ComponentsQueue;
+typedef map<double, std::shared_ptr<Mesh>> ComponentsQueue;
 
 /*
  * Each child node corresponds to a cutting action from its parent
@@ -41,11 +41,11 @@ struct TreeNode {
     double q;  // value function
     double concavity_max;
 
-    const Mesh* c_star = nullptr;
+    std::shared_ptr<Mesh> c_star = nullptr;
     std::vector<Plane> candidate_planes;  // candidate planes for c_star
 
-    Mesh* cut_l = nullptr;
-    Mesh* cut_r = nullptr;
+    std::shared_ptr<Mesh> cut_l = nullptr;
+    std::shared_ptr<Mesh> cut_r = nullptr;
 
     // FUNCTIONS
 
@@ -126,7 +126,7 @@ struct TreeNode {
     inline bool has_expanded_all() { return children_count == candidate_planes.size(); }
 
     // sets the new components resulting from the plane cut prev_cut_plane
-    void set_newly_cut_pieces(Mesh* m0, Mesh* m1) {
+    void set_newly_cut_pieces(std::shared_ptr<Mesh> m0, std::shared_ptr<Mesh> m1) {
         cut_l = m0;
         cut_r = m1;
     }

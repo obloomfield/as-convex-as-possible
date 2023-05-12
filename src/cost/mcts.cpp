@@ -10,7 +10,7 @@ std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh) {
     // Create root node v0 with input mesh
     double cost = ConcavityMetric::R_v(cur_mesh);
     ComponentsQueue root_C;
-    root_C[cost] = new Mesh(cur_mesh);         // TODO: NEED SHARED POINTERS HERE!!!!!!
+    root_C[cost] = std::shared_ptr<Mesh>(new Mesh(cur_mesh));         // TODO: NEED SHARED POINTERS HERE!!!!!!
 
     // initial candidates from mesh
     std::vector<Plane> candidate_planes = cur_mesh.get_axis_aligned_planes(NUM_CUTTING_PLANES);
@@ -42,8 +42,8 @@ std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh) {
     // for all children of v_0, choose the TreeNode with the highest Q score
     // grab handle on the Mesh resulting from the plane cut (before its destroyed later)
     double max_q = -std::numeric_limits<double>::infinity();
-    Mesh* cut_l = nullptr;
-    Mesh* cut_r = nullptr;
+    std::shared_ptr<Mesh> cut_l = nullptr;
+    std::shared_ptr<Mesh> cut_r = nullptr;
     for (auto& tn : root->child_cuts) {
         // find better child
         if (tn->q > max_q) {
@@ -62,7 +62,7 @@ std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh) {
     if (!cut_l || !cut_r) return {nullptr, nullptr};
 
     // return the meshes after cut
-    return {cut_l, cut_r};
+    return {cut_l.get(), cut_r.get()};
 }
 
 std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
@@ -119,8 +119,8 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
                 C_prime.erase(C_prime.rbegin()->first);
 
                 // compute concavity for new meshes and add to queue
-                Mesh* m0 = new Mesh(components[0]);
-                Mesh* m1 = new Mesh(components[1]);
+                std::shared_ptr<Mesh> m0 = std::shared_ptr<Mesh>(new Mesh(components[0]));
+                std::shared_ptr<Mesh> m1 = std::shared_ptr<Mesh>(new Mesh(components[1]));
 
                 C_prime[ConcavityMetric::R_v(components[0])] = m0; // TODO: SHARED POINTER
                 C_prime[ConcavityMetric::R_v(components[1])] = m1; // TODO: SHARED POINTER
@@ -164,7 +164,7 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
         std::cout << "default search on depth " << v->depth + i << std::endl;
 
         auto it = C_copy.rbegin();
-        const Mesh* c_star = it->second;
+        std::shared_ptr<Mesh> c_star = it->second;
 
         // store the "best" results from cutting
         std::vector<Mesh> best_results;
@@ -210,8 +210,8 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
 
         // insert new pieces into queue
         // TODO: shared pointers here
-        C_copy[c_m0] = new Mesh(best_results[0]);
-        C_copy[c_m1] = new Mesh(best_results[1]);
+        C_copy[c_m0] = std::shared_ptr<Mesh>(new Mesh(best_results[0]));
+        C_copy[c_m1] = std::shared_ptr<Mesh>(new Mesh(best_results[1]));
 
 //        std::cout << "after new meshes" << std::endl;
 
