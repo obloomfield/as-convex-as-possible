@@ -86,8 +86,8 @@ void ACAP::ACD(const std::string& mesh_path, const std::string& out_path) {
             Mesh mesh = Q[it->first];
             auto [c_l, c_r] = MCTS::MCTS_search(mesh);
 #ifdef TESTING_INTERMED
-            c_l->save_to_file("mcts1.obj");
-            c_r->save_to_file("mcts2.obj");
+            c_l->save_to_file("out_mcts/mcts1.obj");
+            c_r->save_to_file("out_mcts/mcts2.obj");
 #endif
             double c_l_score = ConcavityMetric::concavity(*c_l);
             double c_r_score = ConcavityMetric::concavity(*c_l);
