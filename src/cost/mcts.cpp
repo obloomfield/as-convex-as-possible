@@ -6,7 +6,7 @@
 
 static std::default_random_engine rng_eng = std::default_random_engine {};
 
-std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh) {
+std::pair<std::shared_ptr<Mesh>, std::shared_ptr<Mesh>> MCTS::MCTS_search(Mesh& cur_mesh) {
     // Create root node v0 with input mesh
     double cost = ConcavityMetric::R_v(cur_mesh);
     ComponentsQueue root_C;
@@ -62,7 +62,7 @@ std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh) {
     if (!cut_l || !cut_r) return {nullptr, nullptr};
 
     // return the meshes after cut
-    return {cut_l.get(), cut_r.get()};
+    return {cut_l, cut_r};
 }
 
 std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {

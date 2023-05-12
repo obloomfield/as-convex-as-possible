@@ -102,6 +102,7 @@ void ACAP::ACD(const std::string& mesh_path, const std::string& out_path) {
             ++count;
             std::string out2 = "out_mcts/mcts" + to_string(count) + ".obj";
             ++count;
+
             c_l->save_to_file(out1);
             c_r->save_to_file(out2);
 #endif
