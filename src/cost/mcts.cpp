@@ -57,7 +57,7 @@ std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh) {
     // TODO: destroy the tree
 
     // assertion that meshes exist
-    if (!cut_l || !cut_r) throw std::runtime_error("PANIC: no meshes after cut");
+    if (!cut_l || !cut_r) return {nullptr, nullptr};
 
     // return the meshes after cut
     return {cut_l, cut_r};

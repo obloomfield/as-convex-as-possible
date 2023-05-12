@@ -16,7 +16,7 @@ using namespace Eigen;
 #define MESH_PATH "meshes/bunny.obj"
 #define EPSILON 0.05
 
-//#define TESTING_INTERMED
+#define TESTING_INTERMED
 
 // Here are some helpful controls for the application
 //
@@ -68,6 +68,8 @@ void ACAP::ACD(const std::string& mesh_path, const std::string& out_path) {
     double conc = ConcavityMetric::concavity(m);
     Q[conc] = m;
 
+    int count = 0;
+
     while (Q.size() > 0) {
 
         // dequeue
@@ -85,9 +87,23 @@ void ACAP::ACD(const std::string& mesh_path, const std::string& out_path) {
 
             Mesh mesh = Q[it->first];
             auto [c_l, c_r] = MCTS::MCTS_search(mesh);
+
+            // the previous piece could not be decomposed.
+            if (!c_l || !c_r) {
+                // add to final decompositions
+                D.push_back(mesh);
+                // erase the original
+                Q.erase(it->first);
+                continue;
+            }
+
 #ifdef TESTING_INTERMED
-            c_l->save_to_file("out_mcts/mcts1.obj");
-            c_r->save_to_file("out_mcts/mcts2.obj");
+            std::string out1 = "out_mcts/mcts" + to_string(count) + ".obj";
+            ++count;
+            std::string out2 = "out_mcts/mcts" + to_string(count) + ".obj";
+            ++count;
+            c_l->save_to_file(out1);
+            c_r->save_to_file(out2);
 #endif
             double c_l_score = ConcavityMetric::concavity(*c_l);
             double c_r_score = ConcavityMetric::concavity(*c_l);
