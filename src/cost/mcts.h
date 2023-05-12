@@ -82,7 +82,7 @@ struct TreeNode {
 
         prev_cut_plane = p;
         // TODO: initialize candidate_planes. can pass in the same one each time and reshuffle
-        candidate_planes = std::vector<Plane>(cand_planes);
+        candidate_planes = c_star->get_axis_aligned_planes(NUM_CUTTING_PLANES);
 
         // shuffle it for randomness
         std::shuffle(std::begin(candidate_planes), std::end(candidate_planes), rng);
