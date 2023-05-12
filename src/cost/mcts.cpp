@@ -4,14 +4,12 @@
 
 // ============ MCTS =============
 
-// TODO: change concavity to R_v
-
 static std::default_random_engine rng_eng = std::default_random_engine {};
 
-std::pair<Mesh*, Mesh*> MCTS::MCTS_search(const Mesh& cur_mesh)  {
+std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh)  {
 
     // Create root node v0 with input mesh
-    double cost = ConcavityMetric::concavity(cur_mesh); // TODO: might need to switch to the R_v concavity
+    double cost = ConcavityMetric::R_v(cur_mesh); // TODO: might need to switch to the R_v concavity
     ComponentsQueue root_C;
     root_C[cost] = new Mesh(cur_mesh); // TODO: NEED SHARED POINTERS HERE!!!!!!
 
@@ -114,8 +112,8 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
                 // compute concavity for new meshes and add to queue
                 Mesh* m0 = new Mesh(components[0]);
                 Mesh* m1 = new Mesh(components[1]);
-                C_prime[ConcavityMetric::concavity(components[0])] = m0; // TODO: SHARED POINTER
-                C_prime[ConcavityMetric::concavity(components[1])] = m1; // TODO: SHARED POINTER
+                C_prime[ConcavityMetric::R_v(components[0])] = m0; // TODO: SHARED POINTER
+                C_prime[ConcavityMetric::R_v(components[1])] = m1; // TODO: SHARED POINTER
 
                 // create new tree node
                 TreeNode* v_prime = new TreeNode(C_prime, curr_v->depth + 1, untried_plane, curr_v->candidate_planes, curr_v, rng_eng);
@@ -169,8 +167,8 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
             // only care if cut resulted in 2 pieces
             if (cut.size() == 2) {
                 // calculate concavity for the cut pieces
-                double curr_c_m0 = ConcavityMetric::concavity(cut[0]);
-                double curr_c_m1 = ConcavityMetric::concavity(cut[1]);
+                double curr_c_m0 = ConcavityMetric::R_v(cut[0]);
+                double curr_c_m1 = ConcavityMetric::R_v(cut[1]);
                 double curr_q = -std::max(curr_c_m0, curr_c_m1);
                 // if the negative concavity is greater than the max (most convex)
                 if (curr_q > q_max) {
@@ -216,7 +214,7 @@ void MCTS::backup(TreeNode* v, double _q) {
 // ============ Greedy =============
 
 map<double, Mesh> MCTS::greedy_search(const Mesh& cur_mesh) {
-    double cost = ConcavityMetric::concavity(cur_mesh);
+    double cost = ConcavityMetric::R_v(cur_mesh);
     map<double, Mesh> cost_to_mesh;
     cost_to_mesh[cost] = cur_mesh;
 
@@ -326,10 +324,10 @@ pair<map<double, Mesh>, vector<Plane>> MCTS::get_best_cut_greedy(
             DEBUG_MSG("Computing concavity...");
             auto t1 = chrono::high_resolution_clock::now();
 
-            double cut_store = -1 * ConcavityMetric::concavity(m);
+            double cut_store = -1 * ConcavityMetric::R_v(m);
 
             for (const auto& frag : frags) {
-                double cost = ConcavityMetric::concavity(frag);
+                double cost = ConcavityMetric::R_v(frag);
                 cut_store += cost;
                 curr_costs[cost] = frag;
             }

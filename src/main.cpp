@@ -13,11 +13,24 @@
 using namespace std::chrono;
 
 const std::string MESH_FILE = "meshes/cactus.obj";
-
 const std::string OUT_DIR = "out/";
+
+const std::string MESH_FILE_MCTS = "meshes/bean.obj";
+const std::string OUT_DIR_MCTS = "out_mcts/";
+
+#define USE_MCTS
+
+void mcts_acd() {
+    ACAP acap;
+    acap.ACD(MESH_FILE_MCTS, OUT_DIR_MCTS);
+}
 
 int main(int argc, char *argv[]) {
     srand(static_cast<unsigned>(time(0)));
+
+#ifdef USE_MCTS
+    mcts_acd();
+#else
 
     //    for (int i = 0; i < 17; i++) {
     //        Mesh::load_from_file("out/iter13mesh" + to_string(i) + ".obj")
@@ -122,4 +135,5 @@ int main(int argc, char *argv[]) {
         w.showMaximized();
 
     return a.exec();
+#endif
 }

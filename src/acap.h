@@ -8,6 +8,7 @@
 #include "Eigen/StdVector"
 #include "geom/mesh.h"
 #include "graphics/shape.h"
+#include "cost/mcts.h"
 
 class Shader;
 
@@ -34,10 +35,10 @@ class ACAP {
         return m_shape.getAnchorPos(lastSelected, pos, ray, start);
     }
 
+    void ACD(const std::string& mesh_path, const std::string& out_path);
+
  private:
     Shape m_shape;
-
-    std::vector<Mesh> ACD(Mesh& mesh);
 
     std::vector<Mesh> merge(Mesh &mesh, std::vector<Mesh> &convex_meshes);
 };

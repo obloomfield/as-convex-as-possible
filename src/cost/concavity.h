@@ -53,7 +53,6 @@ class ConcavityMetric {
     static std::deque<EdgeIndices> sort_concave_edge_indices(
         const Mesh& S, const vector<EdgeIndices>& concave_edge_indices);
 
- private:
     /**
      * @brief Computes the volume-based surrogate term
      * 			R_v(S) = (3 * Vol(CH(S)) - Vol(S) / 4pi)^1/3
@@ -62,7 +61,9 @@ class ConcavityMetric {
      * @param S the mesh of which we're computing R_v
      * @return the surrogate term R_v(S) of H_i(S)
      */
-    static double R_v(const Mesh& S);
+    static double R_v(const Mesh& S); // USED FOR MCTS
+
+ private:
 
     /**
      * @brief Computes the Hausdorff distance of the boundary of a mesh, and its convex hull:

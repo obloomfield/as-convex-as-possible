@@ -128,7 +128,7 @@ struct TreeNode {
 
 class MCTS {
  public:
-    static std::pair<Mesh*, Mesh*> MCTS_search(const Mesh& cur_mesh);
+    static std::pair<Mesh*, Mesh*> MCTS_search(Mesh& cur_mesh);
     static map<double, Mesh> greedy_search(const Mesh& cur_mesh);
 
  private:
