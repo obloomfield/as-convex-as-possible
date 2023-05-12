@@ -16,7 +16,7 @@ using namespace Eigen;
 #define MESH_PATH "meshes/bunny.obj"
 #define EPSILON 0.05
 
-#define TESTING_INTERMED
+//#define TESTING_INTERMED
 
 // Here are some helpful controls for the application
 //

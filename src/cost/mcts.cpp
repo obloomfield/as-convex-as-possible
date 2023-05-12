@@ -6,7 +6,7 @@
 
 static std::default_random_engine rng_eng = std::default_random_engine {};
 
-std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh)  {
+std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh) {
     // Create root node v0 with input mesh
     double cost = ConcavityMetric::R_v(cur_mesh);
     ComponentsQueue root_C;
@@ -78,13 +78,18 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
         // if all cutting planes of c_star are expanded
         if (curr_v->has_expanded_all()) {
 
+
             // get next node based on best child of v
-            curr_v = curr_v->get_best_child();
+            TreeNode* next_v = curr_v->get_best_child();
 
             // error case, if children is empty when all has been expanded for some reason
-            if (curr_v == nullptr) {
-                throw std::runtime_error("PANIC: unexpected children are empty");
+            if (next_v == nullptr) {
+                // simply return the old node early (don't throw an error)
+                return {curr_v, total_concavity};
             }
+
+            // set next
+            curr_v = next_v;
 
             // accumulate negative concavity for the next child
             total_concavity += -curr_v->concavity_max;
@@ -153,6 +158,9 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
     double total_concavity = 0.0;
 
     for (int i = 0; i < max_depth - v->depth; ++i) {
+
+        std::cout << "default search on depth " << v->depth + i << std::endl;
+
         auto it = C_copy.rbegin();
         const Mesh* c_star = it->second;
 
@@ -189,12 +197,22 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
             }
         }
 
+//        std::cout << "default after direction search" << std::endl;
+        if (best_results.size() == 0) {
+            break;
+        }
         // at this point, have best cut pieces and plane
-        C_copy.erase(it->first);  // era   se c_star
+        C_copy.erase(it->first);  // erase c_star
+
+//        std::cout << "after erase" << std::endl;
+
         // insert new pieces into queue
         // TODO: shared pointers here
         C_copy[c_m0] = new Mesh(best_results[0]);
         C_copy[c_m1] = new Mesh(best_results[1]);
+
+//        std::cout << "after new meshes" << std::endl;
+
         // add P to the selected set
         //                                S.push_back(best_direction);
 
