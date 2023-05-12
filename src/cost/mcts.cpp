@@ -7,11 +7,10 @@
 static std::default_random_engine rng_eng = std::default_random_engine {};
 
 std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh)  {
-
     // Create root node v0 with input mesh
-    double cost = ConcavityMetric::R_v(cur_mesh); // TODO: might need to switch to the R_v concavity
+    double cost = ConcavityMetric::R_v(cur_mesh);
     ComponentsQueue root_C;
-    root_C[cost] = new Mesh(cur_mesh); // TODO: NEED SHARED POINTERS HERE!!!!!!
+    root_C[cost] = new Mesh(cur_mesh);         // TODO: NEED SHARED POINTERS HERE!!!!!!
 
     // initial candidates from mesh
     std::vector<Plane> candidate_planes = cur_mesh.get_axis_aligned_planes(NUM_CUTTING_PLANES);
@@ -21,7 +20,6 @@ std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh)  {
 
     // run search for ITERATIONS
     for (int t = 0; t < ITERATIONS; ++t) {
-
         // TreePolicy
         auto [v_l, q_l] = tree_policy(root, MAX_DEPTH);
 
@@ -29,7 +27,10 @@ std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh)  {
         double q_d = default_policy(v_l, MAX_DEPTH);
 
         // Quality
-        double quality = (q_l + q_d) / static_cast<double>(MAX_DEPTH); // average between all the highest concavities down the path
+        double quality =
+            (q_l + q_d) /
+            static_cast<double>(
+                MAX_DEPTH);  // average between all the highest concavities down the path
 
         // Backup
         backup(v_l, quality);
@@ -53,18 +54,15 @@ std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh)  {
     // TODO: destroy the tree
 
     // assertion that meshes exist
-    if (!cut_l || !cut_r)
-        throw std::runtime_error("PANIC: no meshes after cut");
+    if (!cut_l || !cut_r) throw std::runtime_error("PANIC: no meshes after cut");
 
     // return the meshes after cut
     return {cut_l, cut_r};
-
 }
-
 
 std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
     // selected cutting planes
-//    std::vector<Plane> S;
+    //    std::vector<Plane> S;
 
     TreeNode* curr_v = v;
 
@@ -73,7 +71,6 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
 
     // from the root to the leaf
     while (curr_v->depth < max_depth) {
-
         // if all cutting planes of c_star are expanded
         if (curr_v->has_expanded_all()) {
             // get next node based on best child of v
@@ -88,7 +85,7 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
             total_concavity += -curr_v->C.rbegin()->first;
 
             // add corresponding plane of curr_v to selected cutting planes
-//            S.push_back(curr_v->prev_cut_plane);
+            //            S.push_back(curr_v->prev_cut_plane);
         } else {
             // randomly select a untried cutting plane P of c_star
             Plane untried_plane = curr_v->sample_next_candidate();
@@ -98,9 +95,8 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
 
             // ignore cuts that result in more than 2 pieces
             if (components.size() == 2) {
-
                 // add the cutting plane P to selected cutting planes
-//                S.push_back(untried_plane);
+                //                S.push_back(untried_plane);
 
                 // create new node v_prime to curr_v
 
@@ -112,11 +108,13 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
                 // compute concavity for new meshes and add to queue
                 Mesh* m0 = new Mesh(components[0]);
                 Mesh* m1 = new Mesh(components[1]);
+
                 C_prime[ConcavityMetric::R_v(components[0])] = m0; // TODO: SHARED POINTER
                 C_prime[ConcavityMetric::R_v(components[1])] = m1; // TODO: SHARED POINTER
 
                 // create new tree node
-                TreeNode* v_prime = new TreeNode(C_prime, curr_v->depth + 1, untried_plane, curr_v->candidate_planes, curr_v, rng_eng);
+                TreeNode* v_prime = new TreeNode(C_prime, curr_v->depth + 1, untried_plane,
+                                                 curr_v->candidate_planes, curr_v, rng_eng);
                 v_prime->set_newly_cut_pieces(m0, m1);
 
                 // add tree to children of curr_v
@@ -137,10 +135,9 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
     return {curr_v, total_concavity};
 }
 
-
 double MCTS::default_policy(TreeNode* v, int max_depth) {
     // selected cutting planes
-//    std::vector<Plane> S;
+    //    std::vector<Plane> S;
 
     // create a copy of v's components queue
     ComponentsQueue C_copy(v->C);
@@ -159,7 +156,7 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
         // concavity metrics for the two points
         double c_m0, c_m1;
 
-        // for direction in {𝑥𝑦, 𝑥𝑧, 𝑦𝑧}
+        // for direction in {xy, xz, yz}
         std::vector<Plane> directions = c_star->get_axis_aligned_planes(NUM_CUTTING_PLANES);
         for (Plane& direction : directions) {
             std::vector<Mesh> cut = c_star->cut_plane(direction);
@@ -184,13 +181,13 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
         }
 
         // at this point, have best cut pieces and plane
-        C_copy.erase(it->first); // erase c_star
+        C_copy.erase(it->first);  // era   se c_star
         // insert new pieces into queue
         // TODO: shared pointers here
         C_copy[c_m0] = new Mesh(best_results[0]);
         C_copy[c_m1] = new Mesh(best_results[1]);
         // add P to the selected set
-//        S.push_back(best_direction);
+        //                                S.push_back(best_direction);
 
         // accumulate total concavity
         total_concavity += q_max;
@@ -199,17 +196,15 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
     return total_concavity;
 }
 
-
 void MCTS::backup(TreeNode* v, double _q) {
     TreeNode* curr_v = v;
 
     while (curr_v != nullptr) {
-        ++curr_v->visit_count; // increment visit count
-        curr_v->q = std::max(curr_v->q, _q); // update value function score
+        ++curr_v->visit_count;                // increment visit count
+        curr_v->q = std::max(curr_v->q, _q);  // update value function score
         curr_v = curr_v->parent;
     }
 }
-
 
 // ============ Greedy =============
 
@@ -225,15 +220,22 @@ map<double, Mesh> MCTS::greedy_search(const Mesh& cur_mesh) {
         auto it = std::prev(cost_to_mesh.end());
         Mesh worst_mesh = it->second;
 
+        // If basically convex, done
+        if (worst_mesh.is_convex()) {
+            DEBUG_MSG("Worst mesh is convex!");
+            break;
+        }
+
         // Get all concave edges of the worst shape, sorted from furthest to closest distance to CH
         vector<EdgeIndices> concave_edge_indices = worst_mesh.get_concave_edges();
+        append_to_file(OUT_EDGE_FILE, concave_edge_indices.size());
         cout << "num concave edges: " << concave_edge_indices.size() << endl;
 
         // if no concave edges, we're done
-        if (concave_edge_indices.empty()) {
-            cout << "worst mesh is convex!\n";
-            break;
-        }
+        //        if (concave_edge_indices.empty()) {
+        //            cout << "worst mesh is convex!\n";
+        //            break;
+        //        }
 
         // Sort by furthest distance from CH
         deque<EdgeIndices> sorted_concave_edge_indices =
@@ -249,19 +251,28 @@ map<double, Mesh> MCTS::greedy_search(const Mesh& cur_mesh) {
 
         // Get the best cut, remove the old Mesh, then insert the new fragments
         auto [frag_costs, cuts] = get_best_cut_greedy(selected_concave_edge_indices, worst_mesh);
-        cost_to_mesh.erase(it);
-
-        int cnt = 0;
-        for (auto&& p : cuts) {
-            p.save_to_file("out/iter" + to_string(i) + "plane" + to_string(cnt++) + ".obj");
+        if (frag_costs.empty()) {
+            DEBUG_MSG("Got no fragments; stopping search...");
+            break;
         }
+
+        cost_to_mesh.erase(it);
+        DEBUG_MSG("Adding " << frag_costs.size() << " fragments...");
+
         for (auto& [cost, m] : frag_costs) {
             if (cost_to_mesh.contains(cost)) DEBUG_MSG(cost << " already exists in map");
             cost_to_mesh[cost] = m;
         }
-        cnt = 0;
-        for (auto& [_, m] : cost_to_mesh) {
-            m.save_to_file("out/iter" + to_string(i) + "mesh" + to_string(cnt++) + ".obj");
+
+        if (SAVE_ITER) {
+            int cnt = 0;
+            for (auto&& p : cuts) {
+                p.save_to_file("out/iter" + to_string(i) + "plane" + to_string(cnt++) + ".obj");
+            }
+            cnt = 0;
+            for (auto& [_, m] : cost_to_mesh) {
+                m.save_to_file("out/iter" + to_string(i) + "mesh" + to_string(cnt++) + ".obj");
+            }
         }
 
         DEBUG_MSG("currently have " << cost_to_mesh.size() << " fragments");
@@ -296,6 +307,7 @@ vector<Edge> MCTS::get_concave_edges_greedy(const Mesh& mesh) {
 pair<map<double, Mesh>, vector<Plane>> MCTS::get_best_cut_greedy(
     const vector<EdgeIndices>& concave_edge_indices, Mesh& m) {
     Vector3d u(0.0, 0.0, 0.0);
+    EdgeIndices best_ei;
     map<double, Mesh> best_frags;
     vector<Plane> best_cuts;
     double min_cut_score = 1e17;
@@ -305,7 +317,7 @@ pair<map<double, Mesh>, vector<Plane>> MCTS::get_best_cut_greedy(
         for (Plane& plane : cutting_planes) {
             map<double, Mesh> curr_costs;
 
-            DEBUG_MSG("Cutting plane...");
+            DEBUG_MSG("Cutting plane along edge " << ei.ai_ << ", " << ei.bi_ << "...");
             vector<Mesh> frags = m.cut_plane(plane);
             DEBUG_MSG("Done cutting");
 
@@ -313,35 +325,46 @@ pair<map<double, Mesh>, vector<Plane>> MCTS::get_best_cut_greedy(
                 // If failed to cut any components, skip
                 DEBUG_MSG("Failed to cut plane along edge " << ei.ai_ << ", " << ei.bi_
                                                             << ". Saving and continuing...");
-                for (int i = 0; i < cutting_planes.size(); i++) {
-                    cutting_planes[i].save_to_file("out/plane_failed" + to_string(i) + ".obj");
+                if (SAVE_ITER) {
+                    for (int i = 0; i < cutting_planes.size(); i++) {
+                        cutting_planes[i].save_to_file("out/plane_failed" + to_string(i) + ".obj");
+                    }
+                    m.save_to_file("out/mesh_failed.obj");
                 }
-                m.save_to_file("out/mesh_failed.obj");
                 continue;
                 exit(EXIT_FAILURE);
             }
 
-            DEBUG_MSG("Computing concavity...");
-            auto t1 = chrono::high_resolution_clock::now();
+            // If any of the mesh's volumes are sufficiently small, discard cut
 
-            double cut_store = -1 * ConcavityMetric::R_v(m);
+
+            //            DEBUG_MSG("Computing concavity...");
+            //            auto t1 = chrono::high_resolution_clock::now();
+
+            double cut_score = -1 * ConcavityMetric::concavity(m);
 
             for (const auto& frag : frags) {
-                double cost = ConcavityMetric::R_v(frag);
-                cut_store += cost;
+                double cost = ConcavityMetric::concavity(frag);
+                cut_score += cost;
+                // Don't continue if worse
+                if (cut_score > min_cut_score) break;
                 curr_costs[cost] = frag;
             }
 
-            if (cut_store < min_cut_score) {
-                min_cut_score = cut_store;
+            if (cut_score < min_cut_score) {
+                best_ei = ei;
+                min_cut_score = cut_score;
                 best_cuts = cutting_planes;
                 best_frags = curr_costs;
             }
 
-            auto t2 = chrono::high_resolution_clock::now();
-            DEBUG_MSG("Total time: " << chrono::duration_cast<chrono::milliseconds>(t2 - t1).count()
-                                     << "ms");
+            //            auto t2 = chrono::high_resolution_clock::now();
+            //            DEBUG_MSG("Total time: " << chrono::duration_cast<chrono::milliseconds>(t2
+            //            - t1).count()
+            //                                     << "ms");
         }
     }
+
+    //    DEBUG_MSG("Best cut: " << best_ei.ai_ << ", " << best_ei.bi_);
     return {best_frags, best_cuts};
 }

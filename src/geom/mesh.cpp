@@ -23,8 +23,14 @@ constexpr bool PRINT_INTERMEDIATE_OBJ = false;
 
 constexpr string_view OUT_DIR = "fragments/";
 
-Mesh::Mesh(std::vector<Eigen::Vector3d> verts, std::vector<Eigen::Vector3i> tris)
+Mesh::Mesh(std::vector<Eigen::Vector3d> verts, std::vector<Eigen::Vector3i> tris, int scale)
     : m_verts(verts), m_triangles(tris) {
+    // Scale each vertex by a scale factor
+    //    int n_verts = m_verts.size();
+    //    for (int i = 0; i < n_verts; i++) {
+    //        m_verts[i] *= scale;
+    //    }
+
     // Compute initial surface area and bounding box
     m_surface_area = compute_tri_areas();
     m_bbox = compute_bounding_box();
@@ -269,7 +275,6 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) const {
         numCutMeshVertices, numCutMeshFaces);
 
     if (err != MC_NO_ERROR) {
-        DEBUG_MSG("here1");
         return {};
     }
     //    ASSERT_NO_ERROR(err);
@@ -284,7 +289,6 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) const {
                                    &numConnComps);
 
     if (err != MC_NO_ERROR) {
-        DEBUG_MSG("here2");
         return {};
     }
     //    ASSERT_NO_ERROR(err);
@@ -292,7 +296,6 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) const {
     if (numConnComps == 0) {
         fprintf(stdout, "no connected components found\n");
         return {};
-        exit(1);
     }
 
     connComps.resize(numConnComps);
@@ -301,7 +304,7 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) const {
                                    (uint32_t)connComps.size(), connComps.data(), NULL);
 
     if (err != MC_NO_ERROR) {
-        DEBUG_MSG("here3");
+        DEBUG_MSG("Failed to get connected components");
         return {};
     }
 
@@ -322,7 +325,9 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) const {
         err = mcGetConnectedComponentData(
             context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_FLOAT, 0, NULL, &numBytes);
 
-        ASSERT_NO_ERROR(err);
+        if (err != MC_NO_ERROR) {
+            return {};
+        }
 
         uint32_t numberOfVertices = (uint32_t)(numBytes / (sizeof(float) * 3));
 
@@ -332,19 +337,26 @@ std::vector<Mesh> Mesh::cut_plane(Plane &p) const {
             mcGetConnectedComponentData(context, connComp, MC_CONNECTED_COMPONENT_DATA_VERTEX_FLOAT,
                                         numBytes, (void *)vertices.data(), NULL);
 
-        ASSERT_NO_ERROR(err);
+        if (err != MC_NO_ERROR) {
+            return {};
+        }
 
         // query the faces
         // -------------------
 
         err = mcGetConnectedComponentData(
             context, connComp, MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, 0, NULL, &numBytes);
-        ASSERT_NO_ERROR(err);
+        if (err != MC_NO_ERROR) {
+            return {};
+        }
+
         std::vector<uint32_t> faceIndices(numBytes / sizeof(uint32_t), 0);
         err = mcGetConnectedComponentData(context, connComp,
                                           MC_CONNECTED_COMPONENT_DATA_FACE_TRIANGULATION, numBytes,
                                           faceIndices.data(), NULL);
-        ASSERT_NO_ERROR(err);
+        if (err != MC_NO_ERROR) {
+            return {};
+        }
 
         std::vector<uint32_t> faceSizes(faceIndices.size() / 3, 3);
         //        printf("faces: %d\n", (int)faceSizes.size());
@@ -431,8 +443,16 @@ vector<Edge> Mesh::shared_edges(const Vector3i &tri1, const Vector3i &tri2) {
     return shared;
 }
 
+bool Mesh::is_convex() const {
+    //    Mesh CH = this->computeCH();
+    //    cout << this->volume() << endl;
+    //    cout << CH.volume() << endl;
+    if (std::abs(this->volume() - this->computeCH().volume()) < VOL_EPSILON) return true;
+    return false;
+}
+
 bool Mesh::is_concave() const {
-    return !this->get_concave_edges().empty();
+    return !this->is_convex();
 }
 
 vector<EdgeIndices> Mesh::get_concave_edges() const {
@@ -441,22 +461,41 @@ vector<EdgeIndices> Mesh::get_concave_edges() const {
         // Get the triangle points corresponding to each triangle's indices
         auto [tri1, tri2] = tris;
 
+        Vector3i tri1i = tri1, tri2i = tri2;
+
         // Get the vertices that the triangles don't share
-        Vector3d v1 = m_verts[get_third_point(tri1, ei)], v2 = m_verts[get_third_point(tri2, ei)];
+        int v0_ind = get_third_point(tri1, ei), v3_ind = get_third_point(tri2, ei);
+        Vector3d v0 = m_verts[v0_ind], v3 = m_verts[v3_ind];
 
-        auto edge = this->get_edge(ei);
+        // Get the edge vertices in the correct order
+        Triangle t1 = this->get_triangle(tri1), t2 = this->get_triangle(tri2);
 
-        Triangle t1 = this->get_triangle(tri1);
+        // if either is a sliver, continue
+        if (t1.area() < AREA_EPSILON || t2.area() < AREA_EPSILON) continue;
 
-        // If (v2 - v1) * t1_norm > 0, concave
-        if ((v2 - v1).dot(t1.norm()) > 0) {
-            concave_edge_indices.push_back(ei);
+        Vector3d v1 = t1.next(v0);
+        Vector3d v2 = t1.next(v1);
+
+        // Get triangle norms
+        Vector3d t1_norm = (v1 - v2).cross(v2 - v0).normalized(),
+                 t2_norm = (v2 - v1).cross(v1 - v3).normalized();
+
+        // Get direction vector dvec from v0 -> v3; if dvec and t1_norm have the same direction and
+        // dvec and t2_norm have different directions, concave
+        Vector3d dvec = (v3 - v0).normalized();
+        if (same_dir(dvec, t1_norm) && !same_dir(dvec, t2_norm)) {
+            auto dot = t1_norm.dot(t2_norm);
+            if (dot < DOT_THRESHOLD) {
+                //                cout << t1.area() << " " << t2.area() << endl;
+                concave_edge_indices.push_back(ei);
+            }
         }
     }
+
     return concave_edge_indices;
 }
 
-Mesh Mesh::load_from_file(const std::string &path) {
+Mesh Mesh::load_from_file(const std::string &path, int scale) {
     vector<Vector3i> faces;
     vector<Vector3f> fverts;
     if (!MeshLoader::loadTriMesh(path, fverts, faces)) {
@@ -466,7 +505,7 @@ Mesh Mesh::load_from_file(const std::string &path) {
     auto verts = vec3f_to_vec3d(fverts);
 
     // Construct and return a mesh from the vertices
-    return Mesh(verts, faces);
+    return Mesh(verts, faces, scale);
 }
 
 void Mesh::save_to_file(const string &path) const {
