@@ -116,7 +116,6 @@ void ACAP::ACD(const std::string& mesh_path, const std::string& out_path) {
         }
     }
 
-
     // write each resulting fragment to file
     for (int i = 0; i < D.size(); ++i) {
         std::string out_file = out_path + "frag" + to_string(i) + ".obj";

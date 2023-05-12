@@ -131,8 +131,13 @@ struct TreeNode {
         cut_r = m1;
     }
 
-    // TODO: destroy this node's children, and then destroy itself.
-    void free_node() {}
+    // TODO: destroy this node's children recursively
+    void free_children() {
+        for (TreeNode* ch : child_cuts) {
+            ch->free_children();
+            delete ch;
+        }
+    }
 };
 
 class MCTS {
