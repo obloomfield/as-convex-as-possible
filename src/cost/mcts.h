@@ -13,7 +13,7 @@ constexpr int NUM_CUTTING_PLANES = 5;
 
 // d constant in DefaultPolicy and TreePolicy
 constexpr int MAX_DEPTH = 4;
-constexpr int ITERATIONS = 500;
+constexpr int ITERATIONS = 100;
 
 constexpr bool SAVE_ITER = true;
 

@@ -63,6 +63,7 @@ std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh)  {
 std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
     // selected cutting planes
     //    std::vector<Plane> S;
+    std::cout << "tree policy on 0x" << v << std::endl;
 
     TreeNode* curr_v = v;
 
@@ -73,6 +74,7 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
     while (curr_v->depth < max_depth) {
         // if all cutting planes of c_star are expanded
         if (curr_v->has_expanded_all()) {
+            std::cout << "expanded all" << std::endl;
             // get next node based on best child of v
             TreeNode* curr_v = curr_v->get_best_child();
 
@@ -87,6 +89,8 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
             // add corresponding plane of curr_v to selected cutting planes
             //            S.push_back(curr_v->prev_cut_plane);
         } else {
+            std::cout << "creating new cut path" << std::endl;
+
             // randomly select a untried cutting plane P of c_star
             Plane untried_plane = curr_v->sample_next_candidate();
 
@@ -138,6 +142,7 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
 double MCTS::default_policy(TreeNode* v, int max_depth) {
     // selected cutting planes
     //    std::vector<Plane> S;
+    std::cout << "default policy on 0x" << v << std::endl;
 
     // create a copy of v's components queue
     ComponentsQueue C_copy(v->C);
@@ -156,9 +161,11 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
         // concavity metrics for the two points
         double c_m0, c_m1;
 
+        std::cout << "depth: " << i << " , cutting in each direction" << std::endl;
         // for direction in {xy, xz, yz}
         std::vector<Plane> directions = c_star->get_axis_aligned_planes(NUM_CUTTING_PLANES);
         for (Plane& direction : directions) {
+            std::cout << "trying to cut in direction" << std::endl;
             std::vector<Mesh> cut = c_star->cut_plane(direction);
 
             // only care if cut resulted in 2 pieces
@@ -197,6 +204,7 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
 }
 
 void MCTS::backup(TreeNode* v, double _q) {
+    std::cout << "backing up" << std::endl;
     TreeNode* curr_v = v;
 
     while (curr_v != nullptr) {

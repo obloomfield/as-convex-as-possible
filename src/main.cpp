@@ -20,7 +20,7 @@ const std::string OUT_DIR = "out/";
 const std::string MESH_FILE_MCTS = "meshes/bean.obj";
 const std::string OUT_DIR_MCTS = "out_mcts/";
 
-//#define USE_MCTS
+#define USE_MCTS
 
 void mcts_acd() {
     ACAP acap;

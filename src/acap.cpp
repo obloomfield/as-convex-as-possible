@@ -70,24 +70,28 @@ void ACAP::ACD(const std::string& mesh_path, const std::string& out_path) {
 
         // dequeue
         auto it = Q.rbegin();
-        Q.erase(it->first);
 
         // if concavity is below threshold
         if (it->first < EPSILON) {
              std::cout << "fragment is below threshold" << std::endl;
             // add to decomposition
             D.push_back(it->second);
+            // erase it from Q
+            Q.erase(it->first);
         } else {
             std::cout << "cutting component..." << std::endl;
 
-            Mesh mesh = it->second;
+            Mesh mesh = Q[it->first];
             auto [c_l, c_r] = MCTS::MCTS_search(mesh);
 
             double c_l_score = ConcavityMetric::concavity(*c_l);
             double c_r_score = ConcavityMetric::concavity(*c_l);
-
+            // erase pre-cut
+            Q.erase(it->first);
+            // add cuts
             Q[c_l_score] = *c_l;
             Q[c_r_score] = *c_r;
+
         }
     }
 
