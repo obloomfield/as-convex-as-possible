@@ -73,7 +73,7 @@ inline Vector3d get_third_point(const Triangle& t, const Edge& e) {
 }
 
 inline bool same_dir(const Vector3d& a, const Vector3d& b) {
-    return a.dot(b) > 0;
+    return a.dot(b) >= 0;
 }
 
 inline Vector3d project_onto_edge(const Edge& e, const Vector3d& pt) {
@@ -156,6 +156,14 @@ inline double signed_tri_volume(const Vector3d& p1, const Vector3d& p2, const Ve
 
 inline void print_triangle(const Vector3i& tri) {
     DEBUG_MSG("Triangle: " << (tri[0] + 1) << " " << (tri[1] + 1) << " " << (tri[2] + 1));
+}
+
+template <typename T>
+inline void append_to_file(const std::string& path, T data) {
+    std::ofstream of;
+
+    of.open(path, std::ios_base::app);  // append instead of overwrite
+    of << data << endl;
 }
 
 // Save verts/faces to an .obj file

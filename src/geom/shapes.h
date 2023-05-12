@@ -27,7 +27,6 @@ class Plane {
     Eigen::Vector3d p3;
 
  public:
-
     Plane() = default;
 
     Plane(Eigen::Vector3d a, Eigen::Vector3d b, Eigen::Vector3d c, Eigen::Vector3d d) {
@@ -91,9 +90,18 @@ class Triangle {
     inline Eigen::Vector3d norm() const {
         return -(pts_[2] - pts_[0]).cross(pts_[1] - pts_[0]).normalized();
     }
+
     inline Eigen::Vector3d operator[](int i) const {
         assert(i >= 0 && i < 3);
         return pts_[i];
+    }
+
+    inline double area() const { return (pts_[2] - pts_[0]).cross(pts_[1] - pts_[0]).norm() / 2.; }
+
+    inline Eigen::Vector3d next(const Eigen::Vector3d &pt) const {
+        if (pts_[0].isApprox(pt)) return pts_[1];
+        if (pts_[1].isApprox(pt)) return pts_[2];
+        return pts_[0];
     }
 };
 
@@ -152,9 +160,11 @@ class Edge {
     // Get distances to points/edges/triangles
     double dist_to(const Eigen::Vector3d &pt) const { return std::min(dist(a_, pt), dist(b_, pt)); }
     double dist_to(const Edge &e) const {
+        return dist_pt2edge(this->midpoint(), e);
         return std::min(dist_pt2edge(a_, e), dist_pt2edge(b_, e));
     }
     double dist_to(const Triangle &tri) const {
+        return dist_pt2tri(this->midpoint(), tri);
         return std::min(dist_pt2tri(a_, tri), dist_pt2tri(b_, tri));
     }
 

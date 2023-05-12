@@ -36,6 +36,8 @@
 #include "mcut/internal/utils.h"
 #include "mcut/internal/timer.h"
 
+#define LICENSE_PURCHASED
+
 #ifndef LICENSE_PURCHASED
 #define lmsg() printf("NOTE: MCUT is copyrighted and may not be sold or included in commercial products without a license.\n")
 #else

@@ -7,7 +7,7 @@
 #include "geom/mesh.h"
 #include "geom/shapes.h"
 
-constexpr int MAX_NUM_PIECES = 20;
+constexpr int MAX_NUM_PIECES = 80;
 constexpr int MAX_NUM_EDGES = 5;
 constexpr int NUM_CUTTING_PLANES = 5;
 
@@ -16,6 +16,8 @@ constexpr int MAX_DEPTH = 4;
 constexpr int ITERATIONS = 500;
 
 constexpr bool SAVE_ITER = true;
+
+static const std::string OUT_EDGE_FILE = "out/bunny_concave_edges.txt";
 
 typedef map<double, const Mesh*> ComponentsQueue;
 

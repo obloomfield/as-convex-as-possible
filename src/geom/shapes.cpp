@@ -63,7 +63,6 @@ Plane::Plane(const Eigen::Vector3d &norm, double d, std::array<double, 6> bbox) 
     p2 = center + v1 * dist_diag / 2 - v2 * dist_diag / 2;
     p3 = center - v1 * dist_diag / 2 - v2 * dist_diag / 2;
 
-
     // Translate the plane along its normal vector by the given distance
     Eigen::Vector3d translation = d * normal;
     p0 += translation;
@@ -96,9 +95,11 @@ Plane Plane::load_from_file(const std::string &path) {
     ifstream ifs(path);
     string line;
     vector<Vector3d> verts;
-    while (ifs >> line) {
+    while (std::getline(ifs, line)) {
+        if (line[0] != 'v') break;
+        istringstream iss(line.substr(2));
         double v0, v1, v2;
-        sscanf(line.c_str(), "v %lf %lf %lf", &v0, &v1, &v2);
+        iss >> v0 >> v1 >> v2;
         verts.emplace_back(v0, v1, v2);
     }
     // Construct and return a mesh from the vertices

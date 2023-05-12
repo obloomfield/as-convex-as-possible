@@ -45,10 +45,14 @@ deque<EdgeIndices> ConcavityMetric::sort_concave_edge_indices(
     }
 
     deque<EdgeIndices> res;
+    deque<double> costs;
     // the map should maintain min sorting here, so push each to the front
-    for (auto& [_, ei] : edge_dists) {
+    for (auto& [c, ei] : edge_dists) {
+        costs.push_front(c);
         res.push_front(ei);
     }
+    //    for (auto&& c : costs) cout << c << '\t';
+    //    cout << endl;
 
     return res;
 }

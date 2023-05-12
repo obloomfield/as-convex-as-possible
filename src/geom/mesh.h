@@ -21,6 +21,10 @@
 class Plane;
 class Triangle;
 
+constexpr double VOL_EPSILON = 5 * 1e-3;
+constexpr double AREA_EPSILON = 6 * 1e-4;
+constexpr double DOT_THRESHOLD = .996;
+
 class Mesh {
  public:
     // Vertices/triangles information.
@@ -34,10 +38,20 @@ class Mesh {
 
     // Constructs a mesh from a list of vertices and triangles. Initializes total
     // surface area and edge map.
-    Mesh(std::vector<Eigen::Vector3d> verts, std::vector<Eigen::Vector3i> tris);
+    Mesh(std::vector<Eigen::Vector3d> verts, std::vector<Eigen::Vector3i> tris, int scale = 1);
 
     // Constructs a Mesh from a Shape object. Initializes total surface area.
     Mesh(Shape m_shape) : Mesh(m_shape.getVerticesDouble(), m_shape.getFaces()) {}
+
+    // Scale by a factor
+    Mesh scale(int k) {
+        auto n = m_verts.size();
+        for (int i = 0; i < n; i++) {
+            cout << i << endl;
+            m_verts[i] *= k;
+        }
+        return Mesh(m_verts, m_triangles);
+    }
 
     // Get a triangle/edge from a provided Vector3i.
     Triangle get_triangle(const Eigen::Vector3i &tri) const {
@@ -76,13 +90,14 @@ class Mesh {
     std::array<double, 6> bounding_box() const { return m_bbox; };
 
     // MCTS helpers
+    bool is_convex() const;
     bool is_concave() const;
     vector<EdgeIndices> get_concave_edges() const;
     std::vector<Edge> shared_edges(const Eigen::Vector3i &tri1, const Eigen::Vector3i &tri2);
     std::vector<Mesh> merge(const std::vector<Mesh> &Q);
 
     // For helpful intermediate step visualizations
-    static Mesh load_from_file(const std::string &path);
+    static Mesh load_from_file(const std::string &path, int scale = 1);
     void save_to_file(const std::string &path) const;
 
  private:
