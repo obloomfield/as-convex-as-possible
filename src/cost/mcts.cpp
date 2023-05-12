@@ -20,6 +20,9 @@ std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh)  {
 
     // run search for ITERATIONS
     for (int t = 0; t < ITERATIONS; ++t) {
+
+        std::cout << "iteration: " << t << std::endl;
+
         // TreePolicy
         auto [v_l, q_l] = tree_policy(root, MAX_DEPTH);
 
@@ -63,7 +66,7 @@ std::pair<Mesh*, Mesh*> MCTS::MCTS_search(Mesh& cur_mesh)  {
 std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
     // selected cutting planes
     //    std::vector<Plane> S;
-    std::cout << "tree policy on 0x" << v << std::endl;
+    std::cout << "tree policy on " << v << std::endl;
 
     TreeNode* curr_v = v;
 
@@ -74,9 +77,9 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
     while (curr_v->depth < max_depth) {
         // if all cutting planes of c_star are expanded
         if (curr_v->has_expanded_all()) {
-            std::cout << "expanded all" << std::endl;
+
             // get next node based on best child of v
-            TreeNode* curr_v = curr_v->get_best_child();
+            curr_v = curr_v->get_best_child();
 
             // error case, if children is empty when all has been expanded for some reason
             if (curr_v == nullptr) {
@@ -84,12 +87,11 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
             }
 
             // accumulate negative concavity for the next child
-            total_concavity += -curr_v->C.rbegin()->first;
+            total_concavity += -curr_v->concavity_max;
 
             // add corresponding plane of curr_v to selected cutting planes
             //            S.push_back(curr_v->prev_cut_plane);
         } else {
-            std::cout << "creating new cut path" << std::endl;
 
             // randomly select a untried cutting plane P of c_star
             Plane untried_plane = curr_v->sample_next_candidate();
@@ -122,7 +124,7 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
                 v_prime->set_newly_cut_pieces(m0, m1);
 
                 // add tree to children of curr_v
-                curr_v->child_cuts.push_back(v_prime);
+                curr_v->child_cuts.emplace_back(v_prime);
 
                 // accumulate negative concavity for new child
                 total_concavity += -C_prime.rbegin()->first;
@@ -142,7 +144,7 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
 double MCTS::default_policy(TreeNode* v, int max_depth) {
     // selected cutting planes
     //    std::vector<Plane> S;
-    std::cout << "default policy on 0x" << v << std::endl;
+    std::cout << "default policy on " << v << std::endl;
 
     // create a copy of v's components queue
     ComponentsQueue C_copy(v->C);
@@ -161,11 +163,11 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
         // concavity metrics for the two points
         double c_m0, c_m1;
 
-        std::cout << "depth: " << i << " , cutting in each direction" << std::endl;
+//        std::cout << "depth: " << i << " , cutting in each direction" << std::endl;
         // for direction in {xy, xz, yz}
         std::vector<Plane> directions = c_star->get_axis_aligned_planes(NUM_CUTTING_PLANES);
         for (Plane& direction : directions) {
-            std::cout << "trying to cut in direction" << std::endl;
+//            std::cout << "trying to cut in direction" << std::endl;
             std::vector<Mesh> cut = c_star->cut_plane(direction);
 
             // only care if cut resulted in 2 pieces

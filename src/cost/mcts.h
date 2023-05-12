@@ -13,7 +13,7 @@ constexpr int NUM_CUTTING_PLANES = 5;
 
 // d constant in DefaultPolicy and TreePolicy
 constexpr int MAX_DEPTH = 4;
-constexpr int ITERATIONS = 100;
+constexpr int ITERATIONS = 20;
 
 constexpr bool SAVE_ITER = true;
 
@@ -39,6 +39,7 @@ struct TreeNode {
 
     double c;  // exploration parameter of c_star, is concavity(shape) / depth of tree
     double q;  // value function
+    double concavity_max;
 
     const Mesh* c_star = nullptr;
     std::vector<Plane> candidate_planes;  // candidate planes for c_star
@@ -55,6 +56,7 @@ struct TreeNode {
         C = new_C;
         auto it = C.rbegin();
         q = it->first;        // initialize q to be concavity score, but will change later
+        concavity_max = it->first; // keep concavity
         c = q / static_cast<double>(MAX_DEPTH);
         c_star = it->second;  // get argmax Concavity(c_i) in C
 
@@ -67,13 +69,15 @@ struct TreeNode {
 
     // for intermediate nodes, if passed in a plane and parent
     TreeNode(ComponentsQueue& new_C, int d, Plane& p, std::vector<Plane>& cand_planes,
-             TreeNode* parent, std::default_random_engine& rng) {
+             TreeNode* _parent, std::default_random_engine& rng) {
         depth = d;
         C = new_C;
         auto it = C.rbegin();
         q = it->first;        // initialize q to be concavity score, but will change later
+        concavity_max = it->first; // keep concavity
         c = q / static_cast<double>(MAX_DEPTH);
         c_star = it->second;  // get argmax Concavity(c_i) in C
+        parent = _parent; // set parent
 
         prev_cut_plane = p;
         // TODO: initialize candidate_planes. can pass in the same one each time and reshuffle
@@ -86,11 +90,15 @@ struct TreeNode {
     // sample "random" next candidate plane
     Plane sample_next_candidate() { return candidate_planes[next_cand_choice++]; }
 
-    // Upper Confidence Bound score. this shouldn't be called on the root node, or will segfault on
-    // null parent.
+    // Upper Confidence Bound score.
     double UCB_score() {
-        return q + (c * std::sqrt((2. * std::log(static_cast<double>(parent->visit_count)) /
-                                   static_cast<double>(visit_count))));
+        // account for root node (this really shouldn't happen tho?)
+        double p_vis = 1.;
+        if (parent) {
+            p_vis = static_cast<double>(parent->visit_count);
+        }
+
+        return q + (c * std::sqrt((2. * std::log(p_vis) / static_cast<double>(visit_count))));
     }
 
     // best child of the current tree node according to the UCB formula
@@ -111,7 +119,6 @@ struct TreeNode {
                 best_child = c;
             }
         }
-
         return best_child;
     }
 
