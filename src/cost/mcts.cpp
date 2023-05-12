@@ -4,23 +4,22 @@
 
 // ============ MCTS =============
 
-static std::default_random_engine rng_eng = std::default_random_engine {};
+static std::default_random_engine rng_eng = std::default_random_engine{};
 
-std::pair<std::shared_ptr<Mesh>, std::shared_ptr<Mesh>> MCTS::MCTS_search(Mesh& cur_mesh) {
+std::pair<shared_ptr<Mesh>, shared_ptr<Mesh>> MCTS::MCTS_search(Mesh& cur_mesh) {
     // Create root node v0 with input mesh
     double cost = ConcavityMetric::R_v(cur_mesh);
     ComponentsQueue root_C;
-    root_C[cost] = std::shared_ptr<Mesh>(new Mesh(cur_mesh));         // TODO: NEED SHARED POINTERS HERE!!!!!!
+    root_C[cost] = make_shared<Mesh>(cur_mesh);
 
     // initial candidates from mesh
-    std::vector<Plane> candidate_planes = cur_mesh.get_axis_aligned_planes(NUM_CUTTING_PLANES);
+    vector<Plane> candidate_planes = cur_mesh.get_axis_aligned_planes(NUM_CUTTING_PLANES);
 
     // create v_0 root tree node
-    TreeNode* root = new TreeNode(root_C, 0, candidate_planes, rng_eng);
+    auto root = make_shared<TreeNode>(root_C, 0, candidate_planes, rng_eng);
 
     // run search for ITERATIONS
     for (int t = 0; t < ITERATIONS; ++t) {
-
         std::cout << "iteration: " << t << std::endl;
 
         // TreePolicy
@@ -29,11 +28,8 @@ std::pair<std::shared_ptr<Mesh>, std::shared_ptr<Mesh>> MCTS::MCTS_search(Mesh& 
         // DefaultPolicy
         double q_d = default_policy(v_l, MAX_DEPTH);
 
-        // Quality
-        double quality =
-            (q_l + q_d) /
-            static_cast<double>(
-                MAX_DEPTH);  // average between all the highest concavities down the path
+        // Quality (average between all the highest concavities down the path)
+        double quality = (q_l + q_d) / static_cast<double>(MAX_DEPTH);
 
         // Backup
         backup(v_l, quality);
@@ -42,8 +38,7 @@ std::pair<std::shared_ptr<Mesh>, std::shared_ptr<Mesh>> MCTS::MCTS_search(Mesh& 
     // for all children of v_0, choose the TreeNode with the highest Q score
     // grab handle on the Mesh resulting from the plane cut (before its destroyed later)
     double max_q = -std::numeric_limits<double>::infinity();
-    std::shared_ptr<Mesh> cut_l = nullptr;
-    std::shared_ptr<Mesh> cut_r = nullptr;
+    std::shared_ptr<Mesh> cut_l, cut_r;
     for (auto& tn : root->child_cuts) {
         // find better child
         if (tn->q > max_q) {
@@ -55,8 +50,8 @@ std::pair<std::shared_ptr<Mesh>, std::shared_ptr<Mesh>> MCTS::MCTS_search(Mesh& 
     }
 
     // TODO: destroy the tree
-    root->free_children();
-    delete root;
+    //    root->free_children();
+    //    delete root;
 
     // assertion that meshes exist
     if (!cut_l || !cut_r) return {nullptr, nullptr};
@@ -65,12 +60,12 @@ std::pair<std::shared_ptr<Mesh>, std::shared_ptr<Mesh>> MCTS::MCTS_search(Mesh& 
     return {cut_l, cut_r};
 }
 
-std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
+std::pair<shared_ptr<TreeNode>, double> MCTS::tree_policy(shared_ptr<TreeNode> v, int max_depth) {
     // selected cutting planes
     //    std::vector<Plane> S;
     std::cout << "tree policy on " << v << std::endl;
 
-    TreeNode* curr_v = v;
+    shared_ptr<TreeNode> curr_v = v;
 
     // negative concavity for tree policy (convexity)
     double total_concavity = 0.;
@@ -79,10 +74,8 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
     while (curr_v->depth < max_depth) {
         // if all cutting planes of c_star are expanded
         if (curr_v->has_expanded_all()) {
-
-
             // get next node based on best child of v
-            TreeNode* next_v = curr_v->get_best_child();
+            shared_ptr<TreeNode> next_v = curr_v->get_best_child();
 
             // error case, if children is empty when all has been expanded for some reason
             if (next_v == nullptr) {
@@ -99,7 +92,6 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
             // add corresponding plane of curr_v to selected cutting planes
             //            S.push_back(curr_v->prev_cut_plane);
         } else {
-
             // randomly select a untried cutting plane P of c_star
             Plane untried_plane = curr_v->sample_next_candidate();
 
@@ -119,15 +111,16 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
                 C_prime.erase(C_prime.rbegin()->first);
 
                 // compute concavity for new meshes and add to queue
-                std::shared_ptr<Mesh> m0 = std::shared_ptr<Mesh>(new Mesh(components[0]));
-                std::shared_ptr<Mesh> m1 = std::shared_ptr<Mesh>(new Mesh(components[1]));
+                auto m0 = make_shared<Mesh>(components[0]);
+                auto m1 = make_shared<Mesh>(components[1]);
 
-                C_prime[ConcavityMetric::R_v(components[0])] = m0; // TODO: SHARED POINTER
-                C_prime[ConcavityMetric::R_v(components[1])] = m1; // TODO: SHARED POINTER
+                C_prime[ConcavityMetric::R_v(components[0])] = m0;
+                C_prime[ConcavityMetric::R_v(components[1])] = m1;
 
                 // create new tree node
-                TreeNode* v_prime = new TreeNode(C_prime, curr_v->depth + 1, untried_plane,
-                                                 curr_v->candidate_planes, curr_v, rng_eng);
+                shared_ptr<TreeNode> v_prime =
+                    make_shared<TreeNode>(C_prime, curr_v->depth + 1, untried_plane,
+                                          curr_v->candidate_planes, curr_v, rng_eng);
                 v_prime->set_newly_cut_pieces(m0, m1);
 
                 // add tree to children of curr_v
@@ -148,7 +141,7 @@ std::pair<TreeNode*, double> MCTS::tree_policy(TreeNode* v, int max_depth) {
     return {curr_v, total_concavity};
 }
 
-double MCTS::default_policy(TreeNode* v, int max_depth) {
+double MCTS::default_policy(shared_ptr<TreeNode> v, int max_depth) {
     // selected cutting planes
     //    std::vector<Plane> S;
     std::cout << "default policy on " << v << std::endl;
@@ -160,7 +153,6 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
     double total_concavity = 0.0;
 
     for (int i = 0; i < max_depth - v->depth; ++i) {
-
         std::cout << "default search on depth " << v->depth + i << std::endl;
 
         auto it = C_copy.rbegin();
@@ -173,11 +165,11 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
         // concavity metrics for the two points
         double c_m0, c_m1;
 
-//        std::cout << "depth: " << i << " , cutting in each direction" << std::endl;
+        //        std::cout << "depth: " << i << " , cutting in each direction" << std::endl;
         // for direction in {xy, xz, yz}
         std::vector<Plane> directions = c_star->get_axis_aligned_planes(NUM_CUTTING_PLANES);
         for (Plane& direction : directions) {
-//            std::cout << "trying to cut in direction" << std::endl;
+            //            std::cout << "trying to cut in direction" << std::endl;
             std::vector<Mesh> cut = c_star->cut_plane(direction);
 
             // only care if cut resulted in 2 pieces
@@ -199,21 +191,21 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
             }
         }
 
-//        std::cout << "default after direction search" << std::endl;
+        //        std::cout << "default after direction search" << std::endl;
         if (best_results.size() == 0) {
             break;
         }
+
         // at this point, have best cut pieces and plane
         C_copy.erase(it->first);  // erase c_star
-
-//        std::cout << "after erase" << std::endl;
+                                  //        std::cout << "after erase" << std::endl;
 
         // insert new pieces into queue
         // TODO: shared pointers here
-        C_copy[c_m0] = std::shared_ptr<Mesh>(new Mesh(best_results[0]));
-        C_copy[c_m1] = std::shared_ptr<Mesh>(new Mesh(best_results[1]));
+        C_copy[c_m0] = make_shared<Mesh>(best_results[0]);
+        C_copy[c_m1] = make_shared<Mesh>(best_results[1]);
 
-//        std::cout << "after new meshes" << std::endl;
+        //        std::cout << "after new meshes" << std::endl;
 
         // add P to the selected set
         //                                S.push_back(best_direction);
@@ -225,9 +217,9 @@ double MCTS::default_policy(TreeNode* v, int max_depth) {
     return total_concavity;
 }
 
-void MCTS::backup(TreeNode* v, double _q) {
+void MCTS::backup(shared_ptr<TreeNode> v, double _q) {
     std::cout << "backing up" << std::endl;
-    TreeNode* curr_v = v;
+    shared_ptr<TreeNode> curr_v = v;
 
     while (curr_v != nullptr) {
         ++curr_v->visit_count;                // increment visit count
@@ -366,7 +358,6 @@ pair<map<double, Mesh>, vector<Plane>> MCTS::get_best_cut_greedy(
             }
 
             // If any of the mesh's volumes are sufficiently small, discard cut
-
 
             //            DEBUG_MSG("Computing concavity...");
             //            auto t1 = chrono::high_resolution_clock::now();

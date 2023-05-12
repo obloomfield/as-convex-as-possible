@@ -30,30 +30,30 @@ using namespace Eigen;
 //   - Left-click an anchored point to move it around
 //
 // - Minus and equal keys (click repeatedly) to change the size of the vertices
-void ACAP::init(Eigen::Vector3f &coeffMin, Eigen::Vector3f &coeffMax) {
-//    Plane p(Vector3d(-1.2, 1.6, 1.5), Vector3d(1.4, -1.3, 1.5), Vector3d(-1.2, 1.6, -1.005929),
-//            Vector3d(1.4, -1.3, -1.005929));
-//    vector<Mesh> fragments = mesh.cut_plane(p);
+void ACAP::init(Eigen::Vector3f& coeffMin, Eigen::Vector3f& coeffMax) {
+    //    Plane p(Vector3d(-1.2, 1.6, 1.5), Vector3d(1.4, -1.3, 1.5), Vector3d(-1.2, 1.6,
+    //    -1.005929),
+    //            Vector3d(1.4, -1.3, -1.005929));
+    //    vector<Mesh> fragments = mesh.cut_plane(p);
 
     //    assert(fragments.size() == 2);
 
     return;
 
-////    vector<Mesh> decomp = ACD(mesh);
+    ////    vector<Mesh> decomp = ACD(mesh);
 
-//    // Students, please don't touch this code: get min and max for viewport stuff
-//    MatrixX3f all_vertices = MatrixX3f(vertices.size(), 3);
-//    int i = 0;
-//    for (unsigned long i = 0; i < vertices.size(); ++i) {
-//        all_vertices.row(i) = vertices[i];
-//    }
-//    coeffMin = all_vertices.colwise().minCoeff();
-//    coeffMax = all_vertices.colwise().maxCoeff();
+    //    // Students, please don't touch this code: get min and max for viewport stuff
+    //    MatrixX3f all_vertices = MatrixX3f(vertices.size(), 3);
+    //    int i = 0;
+    //    for (unsigned long i = 0; i < vertices.size(); ++i) {
+    //        all_vertices.row(i) = vertices[i];
+    //    }
+    //    coeffMin = all_vertices.colwise().minCoeff();
+    //    coeffMax = all_vertices.colwise().maxCoeff();
 }
 
 // ACD using MCTS
 void ACAP::ACD(const std::string& mesh_path, const std::string& out_path) {
-
     std::cout << "beginning MCTS ACD..." << std::endl;
 
     // Load mesh from file
@@ -71,13 +71,12 @@ void ACAP::ACD(const std::string& mesh_path, const std::string& out_path) {
     int count = 0;
 
     while (Q.size() > 0) {
-
         // dequeue
         auto it = Q.rbegin();
 
         // if concavity is below threshold
         if (it->first < EPSILON) {
-             std::cout << "fragment is below threshold" << std::endl;
+            std::cout << "fragment is below threshold" << std::endl;
             // add to decomposition
             D.push_back(it->second);
             // erase it from Q
@@ -113,7 +112,6 @@ void ACAP::ACD(const std::string& mesh_path, const std::string& out_path) {
             // add cuts
             Q[c_l_score] = *c_l;
             Q[c_r_score] = *c_r;
-
         }
     }
 
@@ -122,5 +120,4 @@ void ACAP::ACD(const std::string& mesh_path, const std::string& out_path) {
         std::string out_file = out_path + "frag" + to_string(i) + ".obj";
         m.save_to_file(out_file);
     }
-
 }

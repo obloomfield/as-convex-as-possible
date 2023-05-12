@@ -27,10 +27,11 @@ typedef map<double, std::shared_ptr<Mesh>> ComponentsQueue;
 struct TreeNode {
     ComponentsQueue
         C;  // state of the components and their concavity at this stage in the tree search
-    Plane prev_cut_plane;               // current cut plane for this node
-    std::vector<TreeNode*> child_cuts;  // all future/descendant states from this node. contains at
-                                        // most 3m nodes, (where m is num cutting planes)
-    TreeNode* parent = nullptr;         // parent pointer
+    Plane prev_cut_plane;  // current cut plane for this node
+    std::vector<std::shared_ptr<TreeNode>>
+        child_cuts;        // all future/descendant states from this node. contains at
+                           // most 3m nodes, (where m is num cutting planes)
+    std::shared_ptr<TreeNode> parent = nullptr;  // parent pointer
 
     int depth;
     int visit_count = 0;
@@ -55,10 +56,10 @@ struct TreeNode {
         depth = d;
         C = new_C;
         auto it = C.rbegin();
-        q = it->first;        // initialize q to be concavity score, but will change later
-        concavity_max = it->first; // keep concavity
+        q = it->first;              // initialize q to be concavity score, but will change later
+        concavity_max = it->first;  // keep concavity
         c = q / static_cast<double>(MAX_DEPTH);
-        c_star = it->second;  // get argmax Concavity(c_i) in C
+        c_star = it->second;        // get argmax Concavity(c_i) in C
 
         // for root node, can just pass in
         candidate_planes = init_cand_planes;
@@ -69,15 +70,15 @@ struct TreeNode {
 
     // for intermediate nodes, if passed in a plane and parent
     TreeNode(ComponentsQueue& new_C, int d, Plane& p, std::vector<Plane>& cand_planes,
-             TreeNode* _parent, std::default_random_engine& rng) {
+             std::shared_ptr<TreeNode> _parent, std::default_random_engine& rng) {
         depth = d;
         C = new_C;
         auto it = C.rbegin();
-        q = it->first;        // initialize q to be concavity score, but will change later
-        concavity_max = it->first; // keep concavity
+        q = it->first;              // initialize q to be concavity score, but will change later
+        concavity_max = it->first;  // keep concavity
         c = q / static_cast<double>(MAX_DEPTH);
-        c_star = it->second;  // get argmax Concavity(c_i) in C
-        parent = _parent; // set parent
+        c_star = it->second;        // get argmax Concavity(c_i) in C
+        parent = _parent;           // set parent
 
         prev_cut_plane = p;
         // TODO: initialize candidate_planes. can pass in the same one each time and reshuffle
@@ -102,7 +103,7 @@ struct TreeNode {
     }
 
     // best child of the current tree node according to the UCB formula
-    TreeNode* get_best_child() {
+    std::shared_ptr<TreeNode> get_best_child() {
         // error case, if child cuts is empty
         if (child_cuts.size() == 0) {
             return nullptr;
@@ -110,8 +111,8 @@ struct TreeNode {
 
         // find best child based on highest UCB score
         double max_score = -std::numeric_limits<double>::infinity();
-        TreeNode* best_child = nullptr;
-        for (TreeNode* c : child_cuts) {
+        std::shared_ptr<TreeNode> best_child;
+        for (auto&& c : child_cuts) {
             double c_score = c->UCB_score();
             // replacement
             if (c_score > max_score) {
@@ -132,12 +133,12 @@ struct TreeNode {
     }
 
     // TODO: destroy this node's children recursively
-    void free_children() {
-        for (TreeNode* ch : child_cuts) {
-            ch->free_children();
-            delete ch;
-        }
-    }
+    //    void free_children() {
+    //        for (std::shared_ptr<TreeNode> ch : child_cuts) {
+    //            ch->free_children();
+    //            delete ch;
+    //        }
+    //    }
 };
 
 class MCTS {
@@ -147,9 +148,10 @@ class MCTS {
 
  private:
     // MCTS
-    static std::pair<TreeNode*, double> tree_policy(TreeNode* v, int max_depth);
-    static double default_policy(TreeNode* v, int max_depth);
-    static void backup(TreeNode* v, double _q);
+    static std::pair<std::shared_ptr<TreeNode>, double> tree_policy(std::shared_ptr<TreeNode> v,
+                                                                    int max_depth);
+    static double default_policy(std::shared_ptr<TreeNode> v, int max_depth);
+    static void backup(std::shared_ptr<TreeNode> v, double _q);
 
     // greedy
     static std::vector<Edge> get_concave_edges_greedy(const Mesh& mesh);
